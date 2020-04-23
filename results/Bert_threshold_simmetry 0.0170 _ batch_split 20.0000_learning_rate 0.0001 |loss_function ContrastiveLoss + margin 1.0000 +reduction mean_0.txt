@@ -1,0 +1,15 @@
+Epoch: 00000 | Loss: 0.4372 | Test Acc: 0.5683 | Time(s): 966.2009
+Epoch: 00001 | Loss: 0.4322 | Test Acc: 0.5956 | Time(s): 964.1108
+Epoch: 00002 | Loss: 0.4258 | Test Acc: 0.5902 | Time(s): 962.2601
+Epoch: 00003 | Loss: 0.4086 | Test Acc: 0.5738 | Time(s): 960.1481
+Epoch: 00004 | Loss: 0.3923 | Test Acc: 0.5574 | Time(s): 959.2676
+Epoch: 00005 | Loss: 0.3779 | Test Acc: 0.5628 | Time(s): 957.9308
+Epoch: 00006 | Loss: 0.3724 | Test Acc: 0.5683 | Time(s): 956.5869
+Epoch: 00007 | Loss: 0.3701 | Test Acc: 0.5628 | Time(s): 955.9660
+Epoch: 00008 | Loss: 0.3687 | Test Acc: 0.5574 | Time(s): 955.0915
+Epoch: 00009 | Loss: 0.3689 | Test Acc: 0.5574 | Time(s): 954.4146
+Epoch: 00010 | Loss: 0.3673 | Test Acc: 0.5628 | Time(s): 953.6009
+Epoch: 00011 | Loss: 0.3670 | Test Acc: 0.5574 | Time(s): 953.0428
+Epoch: 00012 | Loss: 0.3669 | Test Acc: 0.5628 | Time(s): 952.3831
+Epoch: 00013 | Loss: 0.3664 | Test Acc: 0.5683 | Time(s): 951.7547
+Epoch: 00014 | Loss: 0.3660 | Test Acc: 0.5628 | Time(s): 951.3257

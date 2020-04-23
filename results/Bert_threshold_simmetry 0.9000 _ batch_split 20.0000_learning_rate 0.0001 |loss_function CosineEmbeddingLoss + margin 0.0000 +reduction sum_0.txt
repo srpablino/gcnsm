@@ -1,0 +1,10 @@
+Epoch 00000 | Loss 15.0673 | Test Acc 0.5847 | Time(s) 956.9739
+Epoch 00001 | Loss 14.9441 | Test Acc 0.5956 | Time(s) 955.1483
+Epoch 00002 | Loss 14.9480 | Test Acc 0.6066 | Time(s) 954.6433
+Epoch 00003 | Loss 14.9006 | Test Acc 0.6175 | Time(s) 954.2236
+Epoch 00004 | Loss 14.8650 | Test Acc 0.6120 | Time(s) 954.0871
+Epoch 00005 | Loss 14.5423 | Test Acc 0.6120 | Time(s) 953.4183
+Epoch 00006 | Loss 14.3859 | Test Acc 0.6448 | Time(s) 953.1152
+Epoch 00007 | Loss 14.2526 | Test Acc 0.6448 | Time(s) 952.6635
+Epoch 00008 | Loss 14.0886 | Test Acc 0.6667 | Time(s) 952.4949
+Epoch 00009 | Loss 14.0229 | Test Acc 0.6448 | Time(s) 952.0780

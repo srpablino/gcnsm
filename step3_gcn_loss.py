@@ -36,12 +36,10 @@ class Euclidean(th.nn.Module):
         loss_euclidean = th.mean( 0.5 * (1+label) * euclidean_distance +
                                       0.5 * (1-label) * th.clamp(- euclidean_distance, min=0.0))
         return loss_euclidean
-   
+    
 class CosineEmbeddingLoss(th.nn.CosineEmbeddingLoss):
     def __init__(self, margin=0.0,reduction='mean'):
-        super(CosineEmbeddingLoss, self).__init__()  
-        self.margin = margin
-        self.reduction = reduction
+        super(CosineEmbeddingLoss, self).__init__(margin=margin, reduction=reduction)  
     
 def get_options():
     list_nn = {}

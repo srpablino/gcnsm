@@ -81,7 +81,7 @@ class Training():
         self.loss = gcn_loss.get_instance(None,self.loss_name,parameters=self.loss_parameters)
         self.net = gcn_nn.get_instance(None,self.net_name)
         self.net.load_state_dict(state['net'])
-        self.optimizer = th.optim.Adam(self.net.parameters(),self.lr,weight_decay=0.01)
+        self.optimizer = th.optim.Adam(self.net.parameters(),self.lr,weight_decay=0.001)
         self.optimizer.load_state_dict(state['optimizer'])
         print("Training state loaded for configuration: \n" + path.split("/")[2])
         print("Previous log: \n")

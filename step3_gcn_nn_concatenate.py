@@ -32,24 +32,24 @@ class Fasttext_300(nn.Module):
         super(Fasttext_300, self).__init__()
         
         self.layer1 = GCNLayer_concatenate(600, 300)
+        self.bn1 = nn.BatchNorm1d(num_features=300)
         self.layer2 = GCNLayer_concatenate(600, 300)
+        self.bn2 = nn.BatchNorm1d(num_features=300)
         
         #particular layers
         self.layer3 = nn.Linear(300, 300)
-            
-    def forward(self, g,features):
-        x = F.leaky_relu(self.layer1(g,features))
-        x = self.layer2(g, x)
         
-        #particular layers
-        x = th.tanh(self.layer3(x))
-        x = (x / th.norm(x))
-        return x
-    
-    def forward_softmax(self, features):
-        x = th.tanh(self.layer3(features))
-        x = F.log_softmax(self.layer4(x),dim=1)
-        return x
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
         
         
 class Fasttext_150(nn.Module):
@@ -57,80 +57,165 @@ class Fasttext_150(nn.Module):
         super(Fasttext_150, self).__init__()
         
         self.layer1 = GCNLayer_concatenate(600, 300)
+        self.bn1 = nn.BatchNorm1d(num_features=300)
         self.layer2 = GCNLayer_concatenate(600, 300)
+        self.bn2 = nn.BatchNorm1d(num_features=300)
         
         #particular layers
         self.layer3 = nn.Linear(300, 150)
-            
-    def forward(self, g,features):
-        x = F.leaky_relu(self.layer1(g,features))
-        x = self.layer2(g, x)
         
-        #particular layers
-        x = th.tanh(self.layer3(x))
-        x = (x / th.norm(x))
-        return x
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
     
-    def forward_softmax(self, features):
-        x = th.tanh(self.layer3(features))
-        x = F.log_softmax(self.layer4(x),dim=1)
-        return x
-
 class Fasttext_150_150_100(nn.Module):
     def __init__(self):
         super(Fasttext_150_150_100, self).__init__()
         
         self.layer1 = GCNLayer_concatenate(600, 300)
+        self.bn1 = nn.BatchNorm1d(num_features=300)
         self.layer2 = GCNLayer_concatenate(600, 300)
+        self.bn2 = nn.BatchNorm1d(num_features=300)
         
         #particular layers
         self.layer3 = nn.Linear(300, 150)
+        self.bn3 = nn.BatchNorm1d(num_features=150)
         self.layer4 = nn.Linear(150, 150)
+        self.bn4 = nn.BatchNorm1d(num_features=150)
         self.layer5 = nn.Linear(150, 100)
         
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.leaky_relu(self.layer4(z1))
+        z1 = F.leaky_relu(self.layer5(z1))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.leaky_relu(self.layer4(z2))
+        z2 = F.leaky_relu(self.layer5(z2))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
+
+# class Fasttext_180_60_6_2(nn.Module):
+#     def __init__(self):
+#         super(Fasttext_180_60_6_2, self).__init__()
+#         self.layer1 = GCNLayer(600, 300)
+#         self.layer2 = GCNLayer(600, 300)
+#         self.layer3 = nn.Linear(300, 180)
+        
+#         self.layer4 = nn.Linear(180, 60)
+        
+#         self.layer_softmax = nn.Linear(60, 6)
+#         self.layer_logistic = nn.Linear(60, 2)
     
-    def forward(self, g,features):
-        x = F.leaky_relu(self.layer1(g,features))
-        x = self.layer2(g, x)
+#     def forward(self, g,features):
+#         x = F.leaky_relu(self.layer1(g,features))
+#         x = self.layer2(g, x)
+#         x = th.tanh(self.layer3(x))
+#         x = self.layer4(features)
+#         return x
+    
+#     def forward_softmax(self, features):
+#         x = th.tanh(self.layer_softmax(x))
+#         return x
+    
+#     def forward_logistic(self, features):
+#         x = th.tanh(self.layer_logistic(x))
+#         return x    
+        
+class Bert_300(nn.Module):
+    def __init__(self):
+        super(Bert_300, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(1536, 768)
+        self.bn1 = nn.BatchNorm1d(num_features=768)
+        self.layer2 = GCNLayer_concatenate(1536, 768)
+        self.bn2 = nn.BatchNorm1d(num_features=768)
         
         #particular layers
-        x = th.tanh(self.layer3(x))
-        x = self.layer4(x)
-        x = F.leaky_relu(self.layer5(x))
-        x = (x / th.norm(x))
+        self.layer3 = nn.Linear(768, 300)
         
-        return x
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
     
-    def forward_softmax(self, features):
-        x = th.tanh(self.layer3(features))
-        x = F.log_softmax(self.layer4(x),dim=1)
-        return x
     
 class Bert_768(nn.Module):
     def __init__(self):
         super(Bert_768, self).__init__()
         
         self.layer1 = GCNLayer_concatenate(1536, 768)
+        self.bn1 = nn.BatchNorm1d(num_features=768)
         self.layer2 = GCNLayer_concatenate(1536, 768)
+        self.bn2 = nn.BatchNorm1d(num_features=768)
         
         #particular layers
         self.layer3 = nn.Linear(768, 768)
-    
-    def forward(self, g,features):
         
-        x = F.leaky_relu(self.layer1(g,features))
-        x = self.layer2(g, x)
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
+
+class Bert_300_300_200(nn.Module):
+    def __init__(self):
+        super(Bert_300_300_200, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(1536, 768)
+        self.bn1 = nn.BatchNorm1d(num_features=768)
+        self.layer2 = GCNLayer_concatenate(1536, 768)
+        self.bn2 = nn.BatchNorm1d(num_features=768)
         
         #particular layers
-        x = th.tanh(self.layer3(x))
-        x = (x / th.norm(x))
-        return x
+        self.layer3 = nn.Linear(768, 300)
+        self.bn3 = nn.BatchNorm1d(num_features=300)
+        self.layer4 = nn.Linear(300, 300)
+        self.bn4 = nn.BatchNorm1d(num_features=300)
+        self.layer5 = nn.Linear(300, 200)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.leaky_relu(self.layer4(z1))
+        z1 = F.leaky_relu(self.layer5(z1))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.leaky_relu(self.layer4(z2))
+        z2 = F.leaky_relu(self.layer5(z2))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
     
-    def forward_softmax(self, features):
-        x = th.tanh(self.layer3(features))
-        x = F.log_softmax(self.layer4(x),dim=1)
-        return x    
-
 def get_options():
     list_nn = {}
     i = 0

@@ -1,5 +1,5 @@
-import step3_gcn_nn_concatenate as gcn_nn
-import step3_gcn_loss as gcn_loss
+from step3 import step3_gcn_nn_concatenate as gcn_nn
+from step3 import step3_gcn_loss as gcn_loss
 import torch as th
 # print(gcn_nn.get_options())
 # print(gcn_loss.get_options())

@@ -50,7 +50,33 @@ class Fasttext_300(nn.Module):
         z2 = F.normalize(z2, p=2, dim=1)
         
         return z1,z2
+
+class Fasttext3GCN_300(nn.Module):
+    def __init__(self):
+        super(Fasttext3GCN_300, self).__init__()
         
+        self.layer1 = GCNLayer_concatenate(600, 300)
+        self.bn1 = nn.BatchNorm1d(num_features=300)
+        self.layer2 = GCNLayer_concatenate(600, 300)
+        self.bn2 = nn.BatchNorm1d(num_features=300)
+        self.layer3 = GCNLayer_concatenate(600, 300)
+        self.bn2 = nn.BatchNorm1d(num_features=300)
+        
+        #particular layers
+        self.layer4 = nn.Linear(300, 300)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        gcn = F.leaky_relu(self.layer3(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer4(gcn[v1]))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer4(gcn[v2]))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2    
         
 class Fasttext_150(nn.Module):
     def __init__(self):

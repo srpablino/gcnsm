@@ -1,6 +1,8 @@
 from step3 import step3_gcn_nn_concatenate as gcn_nn
 from step3 import step3_gcn_loss as gcn_loss
 import torch as th
+import os    
+from pathlib import Path
 # print(gcn_nn.get_options())
 # print(gcn_loss.get_options())
 # print(gcn_nn.get_instance(0,None))
@@ -32,7 +34,7 @@ class Training():
         self.net = gcn_nn.get_instance(None,self.net_name)
         self.optimizer = th.optim.Adam(self.net.parameters(),self.lr,weight_decay=0.001)
     
-    def save_state(self):
+    def save_state(self,path_setup=""):
         state = {}
         if self.net != None:
             state['net'] = self.net.state_dict()
@@ -57,8 +59,15 @@ class Training():
                                        self.loss_parameters
                                       )).replace(" ","")
             
-            path_model = "./models/"+self.path+".pt"
-            path_result = "./results/"+self.path+".txt"
+            outdir = "./models/"+path_setup
+            if not os.path.exists(outdir):
+                Path(outdir).mkdir(parents=True, exist_ok=True)
+            outdir = "./results/"+path_setup
+            if not os.path.exists(outdir):
+                Path(outdir).mkdir(parents=True, exist_ok=True)
+                
+            path_model = "./models/"+path_setup+"/"+self.path+".pt"
+            path_result = "./results/"+path_setup+"/"+self.path+".txt"
             th.save(state, path_model)
             file_out = open(path_result,'w') 
             file_out.writelines(str(self.log))
@@ -66,6 +75,7 @@ class Training():
             print("Model and results saved")
         else:
             print("Nothing to save")
+        
     
     def load_state(self, path):
         state = th.load(path)

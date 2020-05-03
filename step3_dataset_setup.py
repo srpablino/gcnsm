@@ -15,9 +15,16 @@ or reuse a previously created one (useful to repeat exact same experiment)
 create_new_split = True
 
 """
+You can choose to use one of ["FASTTEXT","BERT"] as initial word_embedding encoding for the nodes in the datasets
+"""
+word_embedding_encoding = "FASTTEXT"
+
+
+"""
 These are the default values
 
 neg_sample = 2
 strategy = "random"
 create_new_split = True
+word_embedding_encoding = "FASTTEXT"
 """

@@ -14,10 +14,11 @@ from step3 import step3_train_test_split as ds_split
 def parameter_error():
     print("Encounter error in parameter setup, default values will be used: strategy=random, neg_sample=2 and create_new_split=True")
 
-    
 neg_sample = ds_setup.neg_sample
 strategy = ds_setup.strategy
 create_new_split = ds_setup.create_new_split
+word_embedding_encoding = ds_setup.word_embedding_encoding
+
 #see dataset_setup to config parametrs for split data
 if neg_sample == None or not int(neg_sample) or neg_sample < 0: 
     neg_sample = 2
@@ -28,8 +29,10 @@ if strategy == None or not str(strategy) or strategy not in ["isolation","random
 if create_new_split == None or not bool(create_new_split):
     create_new_split = True
     parameter_error()
-
-
+if word_embedding_encoding == None or not str(word_embedding_encoding) or word_embedding_encoding not in ["BERT","FASTTEXT"]:
+    word_embedding_encoding = "FASTTEXT"
+    parameter_error()
+    
 if create_new_split:
     path_setup = ds_split.split_ds(strategy,neg_sample)
 else:
@@ -51,9 +54,13 @@ print("Train positive samples: "+str(len(train_positive)) + " Test positive samp
 # In[ ]:
 
 
-import networkx as nx
-g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext.gpickle")
-#g_x = nx.read_gpickle("./word_embeddings/encoded_bert.gpickle")
+import networkx as nx 
+
+if word_embedding_encoding == "FASTTEXT":
+    g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext.gpickle")
+if word_embedding_encoding == "BERT":
+    g_x = nx.read_gpickle("./word_embeddings/encoded_bert.gpickle")
+    
 ds_order = 0
 for x,n in sorted(g_x.nodes(data=True)):
     t = n['tipo']
@@ -308,9 +315,6 @@ def train(training,iterations):
 from step3 import step3_gcn_nn_concatenate as gcn_nn
 from step3 import step3_gcn_loss as gcn_loss
 from step3 import step3_gcn_training as gcn_training
-gcn_nn
-gcn_loss
-gcn_training
 # #load model from path
 # training = gcn_training.Training()
 # training.load_state(path="./models/[file_name].pt")

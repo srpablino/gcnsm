@@ -16,4 +16,6 @@ Based on the graphs you encoded, you will need to provide a dataset indicating t
 The name of the columns for this dataset should be: ["dataset1_id", "dataset2_id","matching_topic"]
 
 ## Step 3: 
-Use the encoded graph to train a NN which will learn how the input datasets are related, and be able to relate new unseen datasets to the ones you already have. This step requieres that you have a dataset of related pairs and the encoded graphs with fasttext and/or bert
+Use the encoded graph to train a NN which will learn how the input datasets are related, and be able to relate new unseen datasets to the ones you already have. This step requieres that you have a dataset of related pairs and the encoded graphs with fasttext and/or bert (see /word_embeddings/readme.txt)
+
+To run the experiment configure the enviroment with the file: step3_dataset_setup.py. Then run the python notebook: step3_run_tests.ipynb. You can plot the results with the step3_plot_results.ipynb notebook (you need to specify the path where the logs of results are)

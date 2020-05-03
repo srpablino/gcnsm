@@ -3,7 +3,7 @@
 
 # # Get dataset with ~80% train, ~20% test
 
-# In[1]:
+# In[ ]:
 
 
 import numpy as np
@@ -11,32 +11,37 @@ import pandas as pd
 import step3_dataset_setup as ds_setup
 from step3 import step3_train_test_split as ds_split
 
-def parameter_error():
-    print("Encounter error in parameter setup, default values will be used: strategy=random, neg_sample=2 and create_new_split=True")
-
+def parameter_error(param_error):
+    print("Encounter error in parameter setup "+param_error+", default values will be used: strategy=random, neg_sample=2 and create_new_split=True")
+    neg_sample = 2
+    strategy = "random"
+    create_new_split = True
+    word_embedding_encoding = "FASTTEXT"
 neg_sample = ds_setup.neg_sample
 strategy = ds_setup.strategy
 create_new_split = ds_setup.create_new_split
 word_embedding_encoding = ds_setup.word_embedding_encoding
 
+print("Values to load")
+print("neg_sample= "+str(neg_sample))
+print("strategy= "+strategy)
+print("create_new_split= "+str(create_new_split))
+print("word_embedding_encoding= "+word_embedding_encoding)
+
 #see dataset_setup to config parametrs for split data
 if neg_sample == None or not int(neg_sample) or neg_sample < 0: 
-    neg_sample = 2
-    parameter_error()
+    parameter_error("neg_sample")
 if strategy == None or not str(strategy) or strategy not in ["isolation","random"]:
-    strategy = "random"
-    parameter_error()
-if create_new_split == None or not bool(create_new_split):
-    create_new_split = True
-    parameter_error()
+    parameter_error("strategy")
+if create_new_split == None:
+    parameter_error("create_new_split")
 if word_embedding_encoding == None or not str(word_embedding_encoding) or word_embedding_encoding not in ["BERT","FASTTEXT"]:
-    word_embedding_encoding = "FASTTEXT"
-    parameter_error()
+    parameter_error("word_embedding_encoding")
     
 if create_new_split:
     path_setup = ds_split.split_ds(strategy,neg_sample)
 else:
-    path_setup = "random/2"
+    path_setup = strategy+"/"+str(neg_sample)
 
 train_mask = pd.read_csv("./datasets/"+path_setup+"/train.csv").to_numpy()
 test_mask = pd.read_csv("./datasets/"+path_setup+"/test.csv").to_numpy()
@@ -82,7 +87,7 @@ for x,n in sorted(g_x.nodes(data=True)):
 datasets = [x for (x,y) in g_x.nodes(data=True) if y['tipo']==0]
 ds_order = [y['ds_order'] for x,y in g_x.nodes(data=True) if y['tipo']==0]
 map_ds = dict(zip(datasets,ds_order))
-#map_reverse_ds_order = dict(zip(ds_order,datasets))
+map_reverse_ds_order = dict(zip(ds_order,datasets))
 map_ds['DS_1']
 
 for mask in train_mask:
@@ -172,10 +177,10 @@ def ne_ne_acc(model, g, features, mask,loss):
     mask_pos_samples_indices = np.array([x for x in mask_pos_samples_indices if x not in train_pos_samples_indices ])
     
     pos_samples = np.concatenate((train_pos_samples,mask_pos_samples))
-    train_embeddings,mask_pos_samples_embeddings = model(g, features,train_indices,mask_pos_samples_indices)
+    pos_samples_indices = np.unique(np.concatenate((pos_samples[:,0],pos_samples[:,1])))
+    train_embeddings,mask_pos_samples_embeddings = model(g, features,train_pos_samples_indices,mask_pos_samples_indices)
     
     sum_accuracy = 0
-    j = 0
     for i in range(len(mask_pos_samples_indices)):
         candidate = mask_pos_samples_embeddings[i]
         #dist() | m - dist()
@@ -189,13 +194,20 @@ def ne_ne_acc(model, g, features, mask,loss):
             result = thecos(candidate.reshape(1,len(candidate)),train_embeddings)
             largest = True
         
-        result_indices = th.topk(result, 1, largest=largest).indices
-        closest_node_index = th.tensor(train_indices)[result_indices]
+        #we ignore the result of the vector with itself
+#         print("Candidate id: " + str(mask_pos_samples_indices[i]))        
+        result_indices = th.topk(result, 2, largest=largest).indices
+        closest_node_index = th.tensor(train_pos_samples_indices)[result_indices]
+#         print(closest_node_index)
+#         print("all in mask")
+#         print(mask_pos_samples)
         
-        check_relation_nodes = np.array([x for x in pos_samples 
+#         check_relation_nodes = np.array([x for x in pos_samples 
+        check_relation_nodes = np.array([x for x in mask_pos_samples 
                                          if (x[0]==mask_pos_samples_indices[i] and x[1] in closest_node_index) or 
                                          (x[1]==mask_pos_samples_indices[i] and x[0] in closest_node_index)])
-        
+#         print("relations found: ")
+#         print(check_relation_nodes)
         if len(check_relation_nodes) > 0:
             sum_accuracy += 1
     
@@ -334,6 +346,11 @@ from step3 import step3_gcn_training as gcn_training
 # ### Test suite
 
 # In[ ]:
+
+
+# training = gcn_training.Training()
+# training.load_state(path="./models/net_name_Fasttext_300_batch_splits_28.0000_lr_0.0010_loss_name_ContrastiveLoss_loss_parameters_0.7+mean.pt")
+# train(training,iterations=N)
 
 
 # #Train with contrastive loss

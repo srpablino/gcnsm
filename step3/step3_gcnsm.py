@@ -165,7 +165,7 @@ def threshold_acc(model, g, features, mask,loss):
     return correct.item() * 1.0 / len(labels_tensor)
 
 # Accuracy based on nearest neighboor (e.g. the nearest node should be a positive pair)
-def ne_ne_acc(model, g, features, mask,loss):
+def ne_ne_acc_isolation(model, g, features, mask,loss):
 
     train_indices = np.unique(np.concatenate((train_mask[:,0],train_mask[:,1])))
     train_pos_samples = np.array([x for x in train_mask if x[2]==1])    
@@ -213,6 +213,55 @@ def ne_ne_acc(model, g, features, mask,loss):
     
     return sum_accuracy / len(mask_pos_samples_indices)    
 
+# Accuracy based on nearest neighboor (e.g. the nearest node should be a positive pair)
+def ne_ne_acc_random(model, g, features, mask,loss):
+
+    train_indices = np.unique(np.concatenate((train_mask[:,0],train_mask[:,1])))
+    train_pos_samples = np.array([x for x in train_mask if x[2]==1])    
+    train_pos_samples_indices = np.unique(np.concatenate((train_pos_samples[:,0],train_pos_samples[:,1])))
+    
+    mask_indices = np.unique(np.concatenate((mask[:,0],mask[:,1])))
+    mask_pos_samples = np.array([x for x in mask if x[2]==1])    
+    mask_pos_samples_indices = np.unique(np.concatenate((mask_pos_samples[:,0],mask_pos_samples[:,1])))
+#     mask_pos_samples_indices = np.array([x for x in mask_pos_samples_indices if x not in train_pos_samples_indices ])
+    
+    pos_samples = np.concatenate((train_pos_samples,mask_pos_samples))
+    pos_samples_indices = np.unique(np.concatenate((pos_samples[:,0],pos_samples[:,1])))
+    pos_embeddings,mask_pos_samples_embeddings = model(g, features,pos_samples_indices,mask_pos_samples_indices)
+    
+    sum_accuracy = 0
+    for i in range(len(mask_pos_samples_indices)):
+        candidate = mask_pos_samples_embeddings[i]
+        #dist() | m - dist()
+        if loss == "ContrastiveLoss":
+            pdist = th.nn.PairwiseDistance(p=2)        
+            result = pdist(candidate,pos_embeddings)
+            largest = False
+        #1 - cos() | max(0,cos() - m)
+        if loss == "CosineEmbeddingLoss":
+            thecos = th.nn.CosineSimilarity(dim=1, eps=1e-6)
+            result = thecos(candidate.reshape(1,len(candidate)),pos_embeddings)
+            largest = True
+        
+        #we ignore the result of the vector with itself
+#         print("Candidate id: " + str(mask_pos_samples_indices[i]))        
+        result_indices = th.topk(result, 2, largest=largest).indices
+        closest_node_index = th.tensor(pos_samples_indices)[result_indices]
+#         print(closest_node_index)
+#         print("all in mask")
+#         print(mask_pos_samples)
+        
+#         check_relation_nodes = np.array([x for x in pos_samples 
+        check_relation_nodes = np.array([x for x in pos_samples 
+                                         if (x[0]==mask_pos_samples_indices[i] and x[1] in closest_node_index) or 
+                                         (x[1]==mask_pos_samples_indices[i] and x[0] in closest_node_index)])
+#         print("relations found: ")
+#         print(check_relation_nodes)
+        if len(check_relation_nodes) > 0:
+            sum_accuracy += 1
+    
+    return sum_accuracy / len(mask_pos_samples_indices)    
+
 
 def evaluate(model, g, features, mask,loss):
     model.eval()
@@ -220,14 +269,11 @@ def evaluate(model, g, features, mask,loss):
         #naive way of testing accuracy 
         acc = threshold_acc(model, g, features, mask,loss)
         #accuracy based on 1-NN 
-        acc2 = ne_ne_acc(model, g, features, mask,loss)
+        if strategy == "isolation":
+            acc2 = ne_ne_acc_isolation(model, g, features, mask,loss)
+        if strategy == "random":
+            acc2 = ne_ne_acc_random(model, g, features, mask,loss)
         return acc,acc2
-
-
-# In[ ]:
-
-
-# evaluate(training.net,g,g.ndata['vector'],test_mask,training.loss_name)
 
 
 # ### Train loop
@@ -349,40 +395,14 @@ from step3 import step3_gcn_training as gcn_training
 
 
 # training = gcn_training.Training()
-# training.load_state(path="./models/net_name_Fasttext_300_batch_splits_28.0000_lr_0.0010_loss_name_ContrastiveLoss_loss_parameters_0.7+mean.pt")
+# training.load_state(path="./models/isolation/05_03_tests_isolated/net_name:Fasttext_300|batch_splits:28.0000|lr:0.0010|loss_name:ContrastiveLoss|loss_parameters:0.7+mean.pt")
 # train(training,iterations=N)
 
 
-# #Train with contrastive loss
-# #train new model and specify parameters
-# # training = gcn_training.Training()
-# # training.set_training(
-# #             net_name= gcn_nn.get_option_name(3),
-# #             batch_splits=14,
-# #             lr=1e-2,
-# #             loss_name=gcn_loss.get_option_name(0),
-# #             loss_parameters="1.0+mean")
-# # train(training,iterations=40)
+# In[ ]:
 
-# # training = gcn_training.Training()
-# # # training.load_state(path="./models/net_name:Fasttext_150|batch_splits:14.0000|lr:0.0010|loss_name:ContrastiveLoss|loss_parameters:0.5+mean.pt")
-# # training.set_training(
-# #             net_name= gcn_nn.get_option_name(3),
-# #             batch_splits=14,
-# #             lr=1e-2,
-# #             loss_name=gcn_loss.get_option_name(1),
-# #             loss_parameters="0.7+mean")
-# # train(training,iterations=40)
 
-# #train new model and specify parameters
-# training = gcn_training.Training()
-# training.set_training(
-#             net_name= gcn_nn.get_option_name(4),
-#             batch_splits=14,
-#             lr=1e-3,
-#             loss_name=gcn_loss.get_option_name(0),
-#             loss_parameters="0.7+mean")
-# train(training,iterations=10)
+# evaluate(training.net,g,g.ndata['vector'],test_mask,training.loss_name)
 
 
 # In[ ]:

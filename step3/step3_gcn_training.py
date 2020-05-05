@@ -93,6 +93,6 @@ class Training():
         self.net.load_state_dict(state['net'])
         self.optimizer = th.optim.Adam(self.net.parameters(),self.lr,weight_decay=0.001)
         self.optimizer.load_state_dict(state['optimizer'])
-        print("Training state loaded for configuration: \n" + path.split("/")[2])
+        print("Training state loaded for configuration: \n" + path.split("/")[-1])
         print("Previous log: \n")
         print(self.log)    

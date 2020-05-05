@@ -12,31 +12,31 @@ import step3_dataset_setup as ds_setup
 from step3 import step3_train_test_split as ds_split
 
 def parameter_error(param_error):
-    print("Encounter error in parameter setup "+param_error+", default values will be used: strategy=random, neg_sample=2 and create_new_split=True")
+    print("Encounter error in parameter setup "+param_error+", default values will be used")
+    global neg_sample
+    global strategy
+    global create_new_split
+    global word_embedding_encoding
     neg_sample = 2
     strategy = "random"
-    create_new_split = True
+    create_new_split = False
     word_embedding_encoding = "FASTTEXT"
-neg_sample = ds_setup.neg_sample
-strategy = ds_setup.strategy
-create_new_split = ds_setup.create_new_split
-word_embedding_encoding = ds_setup.word_embedding_encoding
+    
+#see dataset_setup to config parametrs for split data
+if not "neg_sample" in globals() or neg_sample == None or not int(neg_sample) or neg_sample < 0: 
+    parameter_error("neg_sample")
+if not "strategy" in globals() or strategy == None or not str(strategy) or strategy not in ["isolation","random"]:
+    parameter_error("strategy")
+if not "create_new_split" in globals() or create_new_split == None:
+    parameter_error("create_new_split")
+if not "word_embedding_encoding" in globals() or word_embedding_encoding == None or not str(word_embedding_encoding) or word_embedding_encoding not in ["BERT","FASTTEXT"]:
+    parameter_error("word_embedding_encoding")
 
 print("Values to load")
 print("neg_sample= "+str(neg_sample))
 print("strategy= "+strategy)
 print("create_new_split= "+str(create_new_split))
-print("word_embedding_encoding= "+word_embedding_encoding)
-
-#see dataset_setup to config parametrs for split data
-if neg_sample == None or not int(neg_sample) or neg_sample < 0: 
-    parameter_error("neg_sample")
-if strategy == None or not str(strategy) or strategy not in ["isolation","random"]:
-    parameter_error("strategy")
-if create_new_split == None:
-    parameter_error("create_new_split")
-if word_embedding_encoding == None or not str(word_embedding_encoding) or word_embedding_encoding not in ["BERT","FASTTEXT"]:
-    parameter_error("word_embedding_encoding")
+print("word_embedding_encoding= "+word_embedding_encoding)    
     
 if create_new_split:
     path_setup = ds_split.split_ds(strategy,neg_sample)
@@ -127,9 +127,8 @@ print("Meta-feature graph from datasets loaded")
 
 
 # Accuracy based on thresholds of distance (e.g. cosine > 0.8 should be a positive pair)
-def threshold_acc(model, g, features, mask,loss):
+def threshold_acc(model, g, features, mask,loss,print_details=False,threshold=0.2):
     indices = []
-    labels = []
     
     #mask = np.array([x for x in mask if x[2]==1])
     
@@ -141,7 +140,7 @@ def threshold_acc(model, g, features, mask,loss):
         result = pdist(z1,z2)
         for i in range(len(result)):
             r = result[i]
-            if r.item() <= 0.2:
+            if r.item() <= threshold:
                 indices.append(1.0)
             else:
                 indices.append(0.0)          
@@ -154,18 +153,49 @@ def threshold_acc(model, g, features, mask,loss):
         result = cos(z1,z2)
         for i in range(len(result)):
             r = result[i]
-            if r.item() >= 0.8:
+            if r.item() >= (1-threshold):
                 indices.append(1.0)
             else:
                 indices.append(0.0)
         indices_tensor = th.tensor(indices)
         labels_tensor = th.tensor(mask[:,2])
     
-    correct = th.sum(indices_tensor == labels_tensor)
-    return correct.item() * 1.0 / len(labels_tensor)
+    if print_details:
+        positives = 0.0
+        negatives = 0.0
+        true_positives = 0.0
+        true_negatives = 0.0
+        false_positives = 0.0
+        false_negatives = 0.0
+        
+        for i in range(len(labels_tensor)):
+            prediction = indices_tensor[i].item()
+            label = labels_tensor[i].item()
+            if label == 0.0:
+                negatives+=1
+                if prediction == label:
+                    true_negatives+=1
+                else:
+                    false_positives+=1
+            else:
+                positives+=1
+                if prediction == label:
+                    true_positives+=1
+                else:
+                    false_negatives+=1
+        
+        #print confusion matrix            
+        print("\t \t \t \t ##Labels##")
+        print("\t \t \t \t Similar \t Not Similar")
+        print("Prediction Similar: \t \t {} \t \t {}".format(true_positives,false_positives))
+        print("Prediction Not Similar:  \t {} \t \t {}".format(false_negatives,true_negatives))
+        return (true_positives + true_negatives) / len(labels_tensor)
+    else:
+        correct = th.sum(indices_tensor == labels_tensor)
+        return correct.item() * 1.0 / len(labels_tensor)
 
 # Accuracy based on nearest neighboor (e.g. the nearest node should be a positive pair)
-def ne_ne_acc_isolation(model, g, features, mask,loss):
+def ne_ne_acc_isolation(model, g, features, mask,loss,print_details=False):
 
     train_indices = np.unique(np.concatenate((train_mask[:,0],train_mask[:,1])))
     train_pos_samples = np.array([x for x in train_mask if x[2]==1])    
@@ -214,7 +244,7 @@ def ne_ne_acc_isolation(model, g, features, mask,loss):
     return sum_accuracy / len(mask_pos_samples_indices)    
 
 # Accuracy based on nearest neighboor (e.g. the nearest node should be a positive pair)
-def ne_ne_acc_random(model, g, features, mask,loss):
+def ne_ne_acc_random(model, g, features, mask,loss,print_details=False):
 
     train_indices = np.unique(np.concatenate((train_mask[:,0],train_mask[:,1])))
     train_pos_samples = np.array([x for x in train_mask if x[2]==1])    
@@ -262,7 +292,12 @@ def ne_ne_acc_random(model, g, features, mask,loss):
     
     return sum_accuracy / len(mask_pos_samples_indices)    
 
-
+def confusion_matrix(model, g, features, mask,loss,threshold):
+    model.eval()
+    with th.no_grad():
+        acc = threshold_acc(model, g, features, mask,loss,print_details=True,threshold=threshold)
+        return acc
+        
 def evaluate(model, g, features, mask,loss):
     model.eval()
     with th.no_grad():
@@ -395,8 +430,8 @@ from step3 import step3_gcn_training as gcn_training
 
 
 # training = gcn_training.Training()
-# training.load_state(path="./models/isolation/05_03_tests_isolated/net_name:Fasttext_300|batch_splits:28.0000|lr:0.0010|loss_name:ContrastiveLoss|loss_parameters:0.7+mean.pt")
-# train(training,iterations=N)
+# training.load_state(path="./models/random/2/net_name:Fasttext_300|batch_splits:28.0000|lr:0.0010|loss_name:ContrastiveLoss|loss_parameters:0.7+mean.pt")
+#train(training,iterations=N)
 
 
 # In[ ]:

@@ -135,6 +135,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from dgl import DGLGraph
 #convert from networkx to graph deep library format
+g = None
 def load_dgl():
     global g
     g_x = load_graph()

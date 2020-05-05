@@ -151,7 +151,7 @@ def load_dgl():
 
 
 # Accuracy based on thresholds of distance (e.g. cosine > 0.8 should be a positive pair)
-def threshold_acc(model, g, features, mask,loss,print_details=False,threshold=0.2):
+def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_dist=0.2,threshold_cos=0.8):
     indices = []
     
     #mask = np.array([x for x in mask if x[2]==1])
@@ -164,7 +164,7 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold=0.
         result = pdist(z1,z2)
         for i in range(len(result)):
             r = result[i]
-            if r.item() <= threshold:
+            if r.item() <= threshold_dist:
                 indices.append(1.0)
             else:
                 indices.append(0.0)          
@@ -177,7 +177,7 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold=0.
         result = cos(z1,z2)
         for i in range(len(result)):
             r = result[i]
-            if r.item() >= threshold:
+            if r.item() >= threshold_cos:
                 indices.append(1.0)
             else:
                 indices.append(0.0)
@@ -319,7 +319,7 @@ def ne_ne_acc_random(model, g, features, mask,loss,print_details=False):
 def confusion_matrix(model, g, features, mask,loss,threshold):
     model.eval()
     with th.no_grad():
-        acc = threshold_acc(model, g, features, mask,loss,print_details=True,threshold=threshold)
+        acc = threshold_acc(model, g, features, mask,loss,print_details=True,threshold_dist=threshold,threshold_cos=threshold)
         return acc
         
 def evaluate(model, g, features, mask,loss):

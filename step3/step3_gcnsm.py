@@ -8,50 +8,66 @@
 
 import numpy as np
 import pandas as pd
-import step3_dataset_setup as ds_setup
 from step3 import step3_train_test_split as ds_split
 
-def parameter_error(param_error):
-    print("Encounter error in parameter setup "+param_error+", default values will be used")
+# default values
+train_mask = None
+test_mask = None
+neg_sample = 2
+strategy = "random"
+create_new_split = False
+word_embedding_encoding = "FASTTEXT"
+
+def parameter_error(param_error,value):
+    print("Encounter error in parameter {}, default value: {} will be used ".format(param_error,value))
+    
+def load_env(ns=None,st=None,sp=None,we=None): 
     global neg_sample
     global strategy
     global create_new_split
     global word_embedding_encoding
-    neg_sample = 2
-    strategy = "random"
-    create_new_split = False
-    word_embedding_encoding = "FASTTEXT"
-    
-#see dataset_setup to config parametrs for split data
-if not "neg_sample" in globals() or neg_sample == None or not int(neg_sample) or neg_sample < 0: 
-    parameter_error("neg_sample")
-if not "strategy" in globals() or strategy == None or not str(strategy) or strategy not in ["isolation","random"]:
-    parameter_error("strategy")
-if not "create_new_split" in globals() or create_new_split == None:
-    parameter_error("create_new_split")
-if not "word_embedding_encoding" in globals() or word_embedding_encoding == None or not str(word_embedding_encoding) or word_embedding_encoding not in ["BERT","FASTTEXT"]:
-    parameter_error("word_embedding_encoding")
+    global train_mask
+    global test_mask
 
-print("Values to load")
-print("neg_sample= "+str(neg_sample))
-print("strategy= "+strategy)
-print("create_new_split= "+str(create_new_split))
-print("word_embedding_encoding= "+word_embedding_encoding)    
-    
-if create_new_split:
-    path_setup = ds_split.split_ds(strategy,neg_sample)
-else:
-    path_setup = strategy+"/"+str(neg_sample)
+    #see dataset_setup to config parametrs for split data
+    if ns == None or not int(ns) or ns < 0: 
+        parameter_error("neg_sample",neg_sample)
+    else:
+        neg_sample = ns
+    if st == None or not str(st) or st not in ["isolation","random"]:
+        parameter_error("strategy",strategy)
+    else:
+        strategy = st
+    if sp == None:
+        parameter_error("create_new_split",create_new_split)
+    else:
+        create_new_split = sp
+    if we == None or not str(we) or we not in ["BERT","FASTTEXT"]:
+        parameter_error("word_embedding_encoding",word_embedding_encoding)
+    else:
+        word_embedding_encoding = we
 
-train_mask = pd.read_csv("./datasets/"+path_setup+"/train.csv").to_numpy()
-test_mask = pd.read_csv("./datasets/"+path_setup+"/test.csv").to_numpy()
+    print("Values to load")
+    print("neg_sample= "+str(neg_sample))
+    print("strategy= "+strategy)
+    print("create_new_split= "+str(create_new_split))
+    print("word_embedding_encoding= "+word_embedding_encoding)    
 
-#info about split
-train_positive = np.array([x for x in train_mask if x[2]==1])
-test_positive = np.array([x for x in test_mask if x[2]==1])
-print("Dataset splits loaded")
-print("Train samples: "+str(len(train_mask)) + " Test samples: "+str(len(test_mask)))
-print("Train positive samples: "+str(len(train_positive)) + " Test positive samples: "+str(len(test_positive)))
+    if create_new_split:
+        path_setup = ds_split.split_ds(strategy,neg_sample)
+    else:
+        path_setup = strategy+"/"+str(neg_sample)
+
+    train_mask = pd.read_csv("./datasets/"+path_setup+"/train.csv").to_numpy()
+    test_mask = pd.read_csv("./datasets/"+path_setup+"/test.csv").to_numpy()
+
+    #info about split
+    train_positive = np.array([x for x in train_mask if x[2]==1])
+    test_positive = np.array([x for x in test_mask if x[2]==1])
+    print("Dataset splits loaded")
+    print("Train samples: "+str(len(train_mask)) + " Test samples: "+str(len(test_mask)))
+    print("Train positive samples: "+str(len(train_positive)) + " Test positive samples: "+str(len(test_positive)))
+    load_dgl()
 
 
 # # Read graph of metafeatures
@@ -60,44 +76,51 @@ print("Train positive samples: "+str(len(train_positive)) + " Test positive samp
 
 
 import networkx as nx 
-
-if word_embedding_encoding == "FASTTEXT":
-    g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext.gpickle")
-if word_embedding_encoding == "BERT":
-    g_x = nx.read_gpickle("./word_embeddings/encoded_bert.gpickle")
+map_ds = None
+map_reverse_ds_order = None
+def load_graph():
+    global map_ds
+    global map_reverse_ds_order
     
-ds_order = 0
-for x,n in sorted(g_x.nodes(data=True)):
-    t = n['tipo']
-    if t == "dataset":
-        n['tipo'] = 0
-    if t == "feature dataset":
-        n['tipo'] = 1
-    if t == "literal dataset":
-        n['tipo'] = 2
-    if t == "attribute":
-        n['tipo'] = 3
-    if t == "feature attribute":
-        n['tipo'] = 4
-    if t == "literal attribute":
-        n['tipo'] = 5  
-    n['ds_order']=ds_order
-    ds_order+=1
-    
-datasets = [x for (x,y) in g_x.nodes(data=True) if y['tipo']==0]
-ds_order = [y['ds_order'] for x,y in g_x.nodes(data=True) if y['tipo']==0]
-map_ds = dict(zip(datasets,ds_order))
-map_reverse_ds_order = dict(zip(ds_order,datasets))
-map_ds['DS_1']
+    if word_embedding_encoding == "FASTTEXT":
+        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext.gpickle")
+    if word_embedding_encoding == "BERT":
+        g_x = nx.read_gpickle("./word_embeddings/encoded_bert.gpickle")
 
-for mask in train_mask:
-    mask[0] = map_ds["DS_"+str(mask[0])]
-    mask[1] = map_ds["DS_"+str(mask[1])]
-    if mask[2] == 0:
-        mask[2] = -1
-for mask in test_mask:
-    mask[0] = map_ds["DS_"+str(mask[0])]
-    mask[1] = map_ds["DS_"+str(mask[1])]
+    ds_order = 0
+    for x,n in sorted(g_x.nodes(data=True)):
+        t = n['tipo']
+        if t == "dataset":
+            n['tipo'] = 0
+        if t == "feature dataset":
+            n['tipo'] = 1
+        if t == "literal dataset":
+            n['tipo'] = 2
+        if t == "attribute":
+            n['tipo'] = 3
+        if t == "feature attribute":
+            n['tipo'] = 4
+        if t == "literal attribute":
+            n['tipo'] = 5  
+        n['ds_order']=ds_order
+        ds_order+=1
+
+    datasets = [x for (x,y) in g_x.nodes(data=True) if y['tipo']==0]
+    ds_order = [y['ds_order'] for x,y in g_x.nodes(data=True) if y['tipo']==0]
+    map_ds = dict(zip(datasets,ds_order))
+    map_reverse_ds_order = dict(zip(ds_order,datasets))
+    map_ds['DS_1']
+
+    for mask in train_mask:
+        mask[0] = map_ds["DS_"+str(mask[0])]
+        mask[1] = map_ds["DS_"+str(mask[1])]
+        if mask[2] == 0:
+            mask[2] = -1
+    for mask in test_mask:
+        mask[0] = map_ds["DS_"+str(mask[0])]
+        mask[1] = map_ds["DS_"+str(mask[1])]
+    
+    return g_x
 
 
 # ### Export graph to deep graph library
@@ -112,11 +135,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from dgl import DGLGraph
 #convert from networkx to graph deep library format
-g = dgl.DGLGraph()
-g.from_networkx(g_x,node_attrs=['tipo','vector','ds_order'], edge_attrs=None)
-g_x = None
-
-print("Meta-feature graph from datasets loaded")
+def load_dgl():
+    global g
+    g_x = load_graph()
+    g = dgl.DGLGraph()
+    g.from_networkx(g_x,node_attrs=['tipo','vector','ds_order'], edge_attrs=None)
+    print("Meta-feature graph from datasets loaded")
 
 
 # # Training
@@ -153,7 +177,7 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold=0.
         result = cos(z1,z2)
         for i in range(len(result)):
             r = result[i]
-            if r.item() >= (1-threshold):
+            if r.item() >= threshold:
                 indices.append(1.0)
             else:
                 indices.append(0.0)
@@ -321,8 +345,9 @@ import numpy as np
 def train(training,iterations):
     dur = []
     max_acc = 0.0
-    ## training.splits indicates number of sets to split, not batch size!
-    train_batch = np.array_split(train_mask,training.batch_splits)
+    ## create batchs for training
+    numb_splits = int(len(train_mask) / training.batch_splits) + 1
+    train_batch = np.array_split(train_mask,numb_splits)
     
     #specify number of threads for the training
     #th.set_num_threads(2)
@@ -405,9 +430,12 @@ def train(training,iterations):
 # In[ ]:
 
 
-from step3 import step3_gcn_nn_concatenate as gcn_nn
-from step3 import step3_gcn_loss as gcn_loss
-from step3 import step3_gcn_training as gcn_training
+# from step3 import step3_gcn_nn_concatenate as gcn_nn
+# from step3 import step3_gcn_loss as gcn_loss
+# from step3 import step3_gcn_training as gcn_training
+# load_env(ns=None,st=None,sp=None,we=None)
+
+
 # #load model from path
 # training = gcn_training.Training()
 # training.load_state(path="./models/[file_name].pt")

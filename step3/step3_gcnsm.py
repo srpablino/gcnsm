@@ -29,6 +29,7 @@ def load_env(ns=None,st=None,sp=None,we=None):
     global word_embedding_encoding
     global train_mask
     global test_mask
+    global path_setup
 
     #see dataset_setup to config parametrs for split data
     if ns == None or not int(ns) or ns < 0: 

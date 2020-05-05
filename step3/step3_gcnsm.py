@@ -17,6 +17,7 @@ neg_sample = 2
 strategy = "random"
 create_new_split = False
 word_embedding_encoding = "FASTTEXT"
+path_setup = None
 
 def parameter_error(param_error,value):
     print("Encounter error in parameter {}, default value: {} will be used ".format(param_error,value))

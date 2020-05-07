@@ -47,7 +47,7 @@ class Training():
             state['epochs_run'] = self.epochs_run
             state['log'] = self.log
             state['runtime_seconds'] = self.runtime_seconds
-            from_epoch = "0.0"
+            from_epoch = "00"
             if self.path!=None:
                 from_epoch = self.path.split("/")[-1].split(".pt")[0].split("|")[-1].split(":")[1].split("_")[-1]
             
@@ -58,7 +58,7 @@ class Training():
                                    self.lr,
                                    self.loss_name,
                                    self.loss_parameters,
-                                   from_epoch+"_"+self.epochs_run
+                                   from_epoch+"_"+str("{:02d}".format(self.epochs_run))
                                   )).replace(" ","")
             
             outdir = "./models/"+path_setup

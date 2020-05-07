@@ -51,7 +51,7 @@ class Training():
             if self.path!=None:
                 from_epoch = self.path.split("/")[-1].split(".pt")[0].split("|")[-1].split(":")[1].split("_")[-1]
             
-            self.path = str("net_name:{} | batch_splits:{} | lr:{:.4f} | \
+            save_path = str("net_name:{} | batch_splits:{} | lr:{:.4f} | \
             loss_name:{} | loss_parameters:{} | epochs_run:{}".
                             format(self.net_name,
                                    self.batch_splits,
@@ -68,8 +68,8 @@ class Training():
             if not os.path.exists(outdir):
                 Path(outdir).mkdir(parents=True, exist_ok=True)
                 
-            path_model = "./models/"+path_setup+"/"+self.path+".pt"
-            path_result = "./results/"+path_setup+"/"+self.path+".txt"
+            path_model = "./models/"+path_setup+"/"+save_path+".pt"
+            path_result = "./results/"+path_setup+"/"+save_path+".txt"
             th.save(state, path_model)
             file_out = open(path_result,'w') 
             file_out.writelines(str(self.log))

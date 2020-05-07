@@ -47,17 +47,19 @@ class Training():
             state['epochs_run'] = self.epochs_run
             state['log'] = self.log
             state['runtime_seconds'] = self.runtime_seconds
+            from_epoch = "0.0"
             if self.path!=None:
-                self.path = self.path.split("/")[-1].split(".pt")[0]
-            else:
-                self.path = str("net_name:{} | batch_splits:{:.4f} | lr:{:.4f} | \
-                loss_name:{} | loss_parameters:{}".
-                                format(self.net_name,
-                                       self.batch_splits,
-                                       self.lr,
-                                       self.loss_name,
-                                       self.loss_parameters
-                                      )).replace(" ","")
+                from_epoch = self.path.split("/")[-1].split(".pt")[0].split("|")[-1].split(":")[1].split("_")[-1]
+            
+            self.path = str("net_name:{} | batch_splits:{} | lr:{:.4f} | \
+            loss_name:{} | loss_parameters:{} | epochs_run:{}".
+                            format(self.net_name,
+                                   self.batch_splits,
+                                   self.lr,
+                                   self.loss_name,
+                                   self.loss_parameters,
+                                   from_epoch+"_"+self.epochs_run
+                                  )).replace(" ","")
             
             outdir = "./models/"+path_setup
             if not os.path.exists(outdir):

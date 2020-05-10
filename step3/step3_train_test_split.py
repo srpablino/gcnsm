@@ -59,7 +59,7 @@ def write_files(path,train,test):
     df_test.to_csv(outdir+"/test.csv",index=False)
     
 def split_isolation(file_name,neg_sample):
-    df_ds = read_dataset("./datasets/"+file_name,keep_columns=["dataset1_id", "dataset2_id","matching_topic","topic"]).to_numpy()
+    df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic","topic"]).to_numpy()
     df_matching = np.array([x for x in df_ds if x[2] == 1])
     np.random.shuffle(df_matching)
     
@@ -92,13 +92,13 @@ def split_isolation(file_name,neg_sample):
     test = sample_negative(test,1)
     train = data_augmentation(train)
     
-    path = "isolation/"+str(neg_sample)
+    path = file_name+"/isolation/"+str(neg_sample)
     write_files(path,train[:,:-1],test[:,:-1])
     print("Train/Test split done")
     return path
 
 def split_random(file_name,neg_sample):
-    df_ds = read_dataset("./datasets/"+file_name,keep_columns=["dataset1_id", "dataset2_id","matching_topic"]);
+    df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic"]);
     df_not_matching = df_ds[df_ds["matching_topic"] == 0 ].to_numpy()
     df_matching = df_ds[df_ds["matching_topic"] == 1 ].to_numpy()
 
@@ -119,15 +119,14 @@ def split_random(file_name,neg_sample):
     test = sample_negative(test,1)
     train = data_augmentation(train)
     
-    path = "random/"+str(neg_sample)
+    path = file_name+"/random/"+str(neg_sample)
     write_files(path,train,test)
     print("Train/Test split done")
     return path
 
-file_name = "openml_203ds_datasets_matching.csv"
 strategy = ["isolation","random"]
-def split_ds(s,neg_sampling):
+def split_ds(dataset_name,s,neg_sampling):
     if s == strategy[0]:
-        return split_isolation(file_name,neg_sampling)
+        return split_isolation(dataset_name,neg_sampling)
     if s == strategy[1]:
-        return split_random(file_name,neg_sampling)
+        return split_random(dataset_name,neg_sampling)

@@ -9,7 +9,7 @@ from pathlib import Path
 # print(gcn_loss.get_instance(0,None,"0.5+sum"))
 
 class Training():
-    def __init__(self, net=None,batch_splits=None,lr=None,loss=None,loss_parameters=None,optimizer=None):
+    def __init__(self, net=None,batch_splits=None,lr=None,loss=None,loss_parameters=None,optimizer=None,optimizer_name=None):
         self.net = net
         self.net_name = type(net)
         self.batch_splits = batch_splits
@@ -17,22 +17,35 @@ class Training():
         self.loss = loss
         self.loss_name = type(loss)
         self.loss_parameters = loss_parameters
+        self.optimizer_name = optimizer_name 
         self.optimizer = optimizer
         self.epochs_run = 0
         self.path = None
         self.runtime_seconds = 0
         self.log = []
         
-    def set_training(self, net_name,batch_splits,lr,loss_name,loss_parameters):
+    def set_training(self, net_name,batch_splits,lr,loss_name,loss_parameters,optimizer_name="adam"):
         self.net_name = net_name
+        self.optimizer_name = optimizer_name
         self.batch_splits = batch_splits
         self.lr = lr
         self.loss_name = loss_name
         self.loss_parameters = loss_parameters
-
+        
         self.loss = gcn_loss.get_instance(None,self.loss_name,parameters=self.loss_parameters)
         self.net = gcn_nn.get_instance(None,self.net_name)
-        self.optimizer = th.optim.Adam(self.net.parameters(),self.lr,weight_decay=0.001)
+        
+        #initialize optimizer according user selection
+        if self.optimizer_name == "adam":
+            self.optimizer = th.optim.Adam(self.net.parameters(),self.lr,weight_decay=0.001)
+        if self.optimizer_name == "sgd":
+            self.optimizer = th.optim.SGD(self.net.parameters(), lr=self.lr, momentum=0.9, weight_decay=0.001)
+    
+    def set_lr(self,lr):
+        self.lr = lr
+        if self.optimizer != None:
+            self.optimizer.param_groups[0]['lr']=self.lr
+        
     
     def save_state(self,path_setup=""):
         state = {}
@@ -43,33 +56,42 @@ class Training():
             state['lr'] = self.lr
             state['loss_name'] = self.loss_name
             state['loss_parameters'] = self.loss_parameters
+            state['optimizer_name'] = self.optimizer_name
             state['optimizer'] = self.optimizer.state_dict()
             state['epochs_run'] = self.epochs_run
             state['log'] = self.log
             state['runtime_seconds'] = self.runtime_seconds
             from_epoch = "00"
-            if self.path!=None:
-                from_epoch = self.path.split("/")[-1].split(".pt")[0].split("|")[-1].split(":")[1].split("_")[-1]
             
-            save_path = str("net_name:{} | batch_splits:{} | lr:{:.4f} | \
-            loss_name:{} | loss_parameters:{} | epochs_run:{}".
-                            format(self.net_name,
+            save_dir = str("net_name:{} / optimizer_name:{} / loss_name:{}"
+                           .format(self.net_name,
+                                   self.optimizer_name,
+                                   self.loss_name
+                           )).replace(" ","")
+            
+            if self.path!=None:
+                parent_path = self.path.split("/")[-1] 
+                from_epoch = parent_path.split(".pt")[0].split("|")[-1].split(":")[1].split("_")[-1]
+                save_dir = save_dir+"/"+parent_path.split(".pt")[0]+"/"
+            
+            
+            save_path = str("loss_parameters:{} | batch_splits:{} | lr:{:.0e} |  epochs_run:{}".
+                            format(self.loss_parameters,
                                    self.batch_splits,
                                    self.lr,
-                                   self.loss_name,
-                                   self.loss_parameters,
                                    from_epoch+"_"+str("{:02d}".format(self.epochs_run))
                                   )).replace(" ","")
             
-            outdir = "./models/"+path_setup
-            if not os.path.exists(outdir):
-                Path(outdir).mkdir(parents=True, exist_ok=True)
-            outdir = "./results/"+path_setup
-            if not os.path.exists(outdir):
-                Path(outdir).mkdir(parents=True, exist_ok=True)
+            outdir_model = "./models/"+path_setup+"/"+save_dir
+            if not os.path.exists(outdir_model):
+                Path(outdir_model).mkdir(parents=True, exist_ok=True)
                 
-            path_model = "./models/"+path_setup+"/"+save_path+".pt"
-            path_result = "./results/"+path_setup+"/"+save_path+".txt"
+            outdir_result = "./results/"+path_setup+"/"+save_dir
+            if not os.path.exists(outdir_result):
+                Path(outdir_result).mkdir(parents=True, exist_ok=True)
+                
+            path_model = outdir_model+"/"+save_path+".pt"
+            path_result = outdir_result+"/"+save_path+".txt"
             th.save(state, path_model)
             file_out = open(path_result,'w') 
             file_out.writelines(str(self.log))
@@ -92,8 +114,24 @@ class Training():
         self.runtime_seconds = state['runtime_seconds']        
         self.loss = gcn_loss.get_instance(None,self.loss_name,parameters=self.loss_parameters)
         self.net = gcn_nn.get_instance(None,self.net_name)
+        
+        #retrocompatibility check
+        if "optimizer_name" not in state.keys():
+            if "betas" in state['optimizer']["param_groups"][0].keys():
+                self.optimizer_name = "adam"
+            else:
+                self.optimizer_name = "sgd"
+        else:
+            self.optimizer_name = state['optimizer_name']
+            
+        #initialize optimizer according user selection
+        if self.optimizer_name == "adam":
+            self.optimizer = th.optim.Adam(self.net.parameters(),self.lr,weight_decay=0.001)
+        if self.optimizer_name == "sgd":
+            self.optimizer = th.optim.SGD(self.net.parameters(), lr=self.lr, momentum=0.9, weight_decay=0.001)
+        
+        #load states of NN and optimizer
         self.net.load_state_dict(state['net'])
-        self.optimizer = th.optim.Adam(self.net.parameters(),self.lr,weight_decay=0.001)
         self.optimizer.load_state_dict(state['optimizer'])
         print("Training state loaded for configuration: \n" + path.split("/")[-1])
         print("Previous log: \n")

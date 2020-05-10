@@ -18,11 +18,13 @@ strategy = "random"
 create_new_split = False
 word_embedding_encoding = "FASTTEXT"
 path_setup = None
+dataset_name = "openml_203ds_datasets_matching"
 
 def parameter_error(param_error,value):
     print("Encounter error in parameter {}, default value: {} will be used ".format(param_error,value))
     
-def load_env(ns=None,st=None,sp=None,we=None): 
+def load_env(ds_name=None,ns=None,st=None,sp=None,we=None): 
+    global dataset_name
     global neg_sample
     global strategy
     global create_new_split
@@ -32,10 +34,16 @@ def load_env(ns=None,st=None,sp=None,we=None):
     global path_setup
 
     #see dataset_setup to config parametrs for split data
+    if ds_name == None or not str(ds_name): 
+        parameter_error("dataset_name",dataset_name)
+    else:
+        dataset_name = ds_name
+        
     if ns == None or not int(ns) or ns < 0: 
         parameter_error("neg_sample",neg_sample)
     else:
         neg_sample = ns
+        
     if st == None or not str(st) or st not in ["isolation","random"]:
         parameter_error("strategy",strategy)
     else:
@@ -50,15 +58,16 @@ def load_env(ns=None,st=None,sp=None,we=None):
         word_embedding_encoding = we
 
     print("Values to load")
+    print("dataset_name="+dataset_name)
     print("neg_sample= "+str(neg_sample))
     print("strategy= "+strategy)
     print("create_new_split= "+str(create_new_split))
     print("word_embedding_encoding= "+word_embedding_encoding)    
 
     if create_new_split:
-        path_setup = ds_split.split_ds(strategy,neg_sample)
+        path_setup = ds_split.split_ds(dataset_name,strategy,neg_sample)
     else:
-        path_setup = strategy+"/"+str(neg_sample)
+        path_setup = dataset_name+"/"+strategy+"/"+str(neg_sample)
 
     train_mask = pd.read_csv("./datasets/"+path_setup+"/train.csv").to_numpy()
     test_mask = pd.read_csv("./datasets/"+path_setup+"/test.csv").to_numpy()

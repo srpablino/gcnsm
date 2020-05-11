@@ -3,7 +3,7 @@
 
 # # Get dataset with ~80% train, ~20% test
 
-# In[ ]:
+# In[1]:
 
 
 import numpy as np
@@ -83,7 +83,7 @@ def load_env(ds_name=None,ns=None,st=None,sp=None,we=None):
 
 # # Read graph of metafeatures
 
-# In[ ]:
+# In[2]:
 
 
 import networkx as nx 
@@ -136,7 +136,7 @@ def load_graph():
 
 # ### Export graph to deep graph library
 
-# In[ ]:
+# In[3]:
 
 
 import dgl
@@ -159,7 +159,7 @@ def load_dgl():
 
 # ### Evaluation methods
 
-# In[ ]:
+# In[16]:
 
 
 # Accuracy based on thresholds of distance (e.g. cosine > 0.8 should be a positive pair)
@@ -221,10 +221,15 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_di
                     false_negatives+=1
         
         #print confusion matrix            
-        print("\t \t \t \t ##Labels##")
+        print("\t \t \t \t ##########Labels##########")
         print("\t \t \t \t Similar \t Not Similar")
         print("Prediction Similar: \t \t {} \t \t {}".format(true_positives,false_positives))
         print("Prediction Not Similar:  \t {} \t \t {}".format(false_negatives,true_negatives))
+        print("\t \t \t \t----------------------")
+        print("\t \t \t \t{} \t \t {}".format(positives,negatives))
+        print("\nRecall/Sensitivity: "+str(true_positives/positives))
+        print("Specificity/Selectivity: "+str(true_negatives/negatives))
+        print("Accuracy: "+str((true_positives + true_negatives) / len(labels_tensor)))
         return (true_positives + true_negatives) / len(labels_tensor)
     else:
         correct = th.sum(indices_tensor == labels_tensor)
@@ -349,7 +354,7 @@ def evaluate(model, g, features, mask,loss):
 
 # ### Train loop
 
-# In[ ]:
+# In[5]:
 
 
 import time
@@ -439,13 +444,13 @@ def train(training,iterations):
 # ### Load training class to save/load/train experiments:
 # <b>from step3 import step3_gcn_train as gcn_train</b>
 
-# In[ ]:
+# In[8]:
 
 
 # from step3 import step3_gcn_nn_concatenate as gcn_nn
 # from step3 import step3_gcn_loss as gcn_loss
 # from step3 import step3_gcn_training as gcn_training
-# load_env(ns=None,st=None,sp=None,we=None)
+#load_env(ns=None,st=None,sp=None,we=None)
 
 
 # #load model from path
@@ -472,16 +477,4 @@ def train(training,iterations):
 # training = gcn_training.Training()
 # training.load_state(path="./models/random/2/net_name:Fasttext_300|batch_splits:28.0000|lr:0.0010|loss_name:ContrastiveLoss|loss_parameters:0.7+mean.pt")
 #train(training,iterations=N)
-
-
-# In[ ]:
-
-
-# evaluate(training.net,g,g.ndata['vector'],test_mask,training.loss_name)
-
-
-# In[ ]:
-
-
-
 

@@ -57,6 +57,7 @@ def write_files(path,train,test):
         Path(outdir).mkdir(parents=True, exist_ok=True)
     df_train.to_csv(outdir+"/train.csv",index=False)
     df_test.to_csv(outdir+"/test.csv",index=False)
+
     
 def split_isolation(file_name,neg_sample):
     df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic","topic"]).to_numpy()
@@ -97,6 +98,37 @@ def split_isolation(file_name,neg_sample):
     print("Train/Test split done")
     return path
 
+def split_cv_random(file_name,neg_sample):
+    df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic"]).to_numpy();
+    
+    if neg_sample > 0:
+        dataset = sample_negative(df_ds,neg_sample)
+    
+    df_not_matching = np.array([x for x in dataset if x[2]==0])
+    df_matching = np.array([x for x in dataset if x[2]==1])
+
+    cv_pos = np.array(np.array_split(df_matching,10))
+    cv_neg = np.array(np.array_split(df_not_matching,10))
+    path = file_name+"/random/"+str(neg_sample)+"/cv"
+    for i in range(10):
+        test = np.concatenate((cv_pos[i],cv_neg[i]))
+        
+        train_pos = np.concatenate((cv_pos[0:i],cv_pos[i+1:]))
+        train_neg = np.concatenate((cv_neg[0:i],cv_neg[i+1:]))
+        
+        train_pos = np.concatenate((train_pos))
+        train_neg = np.concatenate((train_neg))
+        
+        train = np.concatenate((train_pos,train_neg)).squeeze()
+        
+        test = sample_negative(test,1)
+        train = data_augmentation(train)
+        
+        write_files(path+"/"+str(i),train,test)
+            
+    
+    print("CV Train/Test split done")
+    return path
 def split_random(file_name,neg_sample):
     df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic"]);
     df_not_matching = df_ds[df_ds["matching_topic"] == 0 ].to_numpy()
@@ -125,8 +157,11 @@ def split_random(file_name,neg_sample):
     return path
 
 strategy = ["isolation","random"]
-def split_ds(dataset_name,s,neg_sampling):
+def split_ds(dataset_name,s,neg_sampling,cv=False):
     if s == strategy[0]:
         return split_isolation(dataset_name,neg_sampling)
     if s == strategy[1]:
-        return split_random(dataset_name,neg_sampling)
+        if cv:
+            return split_cv_random(dataset_name,neg_sampling)
+        else:
+            return split_random(dataset_name,neg_sampling)

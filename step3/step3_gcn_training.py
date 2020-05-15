@@ -23,6 +23,7 @@ class Training():
         self.path = None
         self.runtime_seconds = 0
         self.log = []
+        self.gen_path = ""
         
     def set_training(self, net_name,batch_splits,lr,loss_name,loss_parameters,optimizer_name="adam"):
         self.net_name = net_name
@@ -82,11 +83,15 @@ class Training():
                                    from_epoch+"_"+str("{:02d}".format(self.epochs_run))
                                   )).replace(" ","")
             
-            outdir_model = "./models/"+path_setup+"/"+save_dir
+            outdir = path_setup+"/"+save_dir
+            outpath = outdir +"/"+save_path
+            self.gen_path = outpath
+            
+            outdir_model = "./models/"+ outdir
             if not os.path.exists(outdir_model):
                 Path(outdir_model).mkdir(parents=True, exist_ok=True)
                 
-            outdir_result = "./results/"+path_setup+"/"+save_dir
+            outdir_result = "./results/"+ outdir
             if not os.path.exists(outdir_result):
                 Path(outdir_result).mkdir(parents=True, exist_ok=True)
                 

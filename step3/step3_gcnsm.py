@@ -19,11 +19,12 @@ create_new_split = False
 word_embedding_encoding = "FASTTEXT"
 path_setup = None
 dataset_name = "openml_203ds_datasets_matching"
+cross_v=-1
 
 def parameter_error(param_error,value):
     print("Encounter error in parameter {}, default value: {} will be used ".format(param_error,value))
     
-def load_env(ds_name=None,ns=None,st=None,sp=None,we=None): 
+def load_env(ds_name=None,ns=None,st=None,sp=None,we=None,cv=-1): 
     global dataset_name
     global neg_sample
     global strategy
@@ -32,6 +33,9 @@ def load_env(ds_name=None,ns=None,st=None,sp=None,we=None):
     global train_mask
     global test_mask
     global path_setup
+    global cross_v
+    
+    cross_v = cv
 
     #see dataset_setup to config parametrs for split data
     if ds_name == None or not str(ds_name): 
@@ -63,14 +67,30 @@ def load_env(ds_name=None,ns=None,st=None,sp=None,we=None):
     print("strategy= "+strategy)
     print("create_new_split= "+str(create_new_split))
     print("word_embedding_encoding= "+word_embedding_encoding)    
+    print("cross_v= "+str(cross_v))    
 
-    if create_new_split:
-        path_setup = ds_split.split_ds(dataset_name,strategy,neg_sample)
+    if cross_v < 0:
+        if create_new_split:
+            print("Creating simple train/test splits...")
+            path_setup = ds_split.split_ds(dataset_name,strategy,neg_sample)
+        else:
+            path_setup = dataset_name+"/"+strategy+"/"+str(neg_sample)
+        
+        train_mask = pd.read_csv("./datasets/"+path_setup+"/train.csv").to_numpy()
+        test_mask = pd.read_csv("./datasets/"+path_setup+"/test.csv").to_numpy()
+    
     else:
-        path_setup = dataset_name+"/"+strategy+"/"+str(neg_sample)
-
-    train_mask = pd.read_csv("./datasets/"+path_setup+"/train.csv").to_numpy()
-    test_mask = pd.read_csv("./datasets/"+path_setup+"/test.csv").to_numpy()
+        if cross_v == 0:
+            print("Creating cross validation splits...")
+            path_setup = ds_split.split_ds(dataset_name,strategy,neg_sample,True)
+        else:
+            path_setup = dataset_name+"/"+strategy+"/"+str(neg_sample)+"/cv"
+            
+        
+        train_mask = pd.read_csv("./datasets/"+path_setup+"/"+str(cross_v)+"/train.csv").to_numpy()
+        test_mask = pd.read_csv("./datasets/"+path_setup+"/"+str(cross_v)+"/test.csv").to_numpy()
+    
+    
 
     #info about split
     train_positive = np.array([x for x in train_mask if x[2]==1])
@@ -477,4 +497,28 @@ def train(training,iterations):
 # training = gcn_training.Training()
 # training.load_state(path="./models/random/2/net_name:Fasttext_300|batch_splits:28.0000|lr:0.0010|loss_name:ContrastiveLoss|loss_parameters:0.7+mean.pt")
 #train(training,iterations=N)
+
+
+# ### Cross validation
+
+# In[ ]:
+
+
+import copy
+
+cv_logs = []
+def cv_training(training,it):
+    train(training,iterations=it)
+    return training.log
+
+def cross_validation(training,iterations=1):
+    global cv_logs
+    training_copy = None
+    for i in range(10):
+        neg_sample = 2
+        load_env(ds_name=dataset_name,ns=neg_sample,st=strategy,sp=create_new_split,we=word_embedding_encoding,cv=i)
+        training_copy = copy.deepcopy(training)
+        cv_logs.append(cv_training(training_copy,iterations))
+    file_out = open("./results/"+training_copy.gen_path+"/tmp_cv_result.txt",'w') 
+    file_out.writelines(str(cv_logs))
 

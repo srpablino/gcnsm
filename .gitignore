@@ -3,4 +3,5 @@ word_embeddings/*
 .ipynb_checkpoints/*
 openML/*
 draft_test.ipynb
+*.png
 __pycache__

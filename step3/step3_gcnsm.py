@@ -505,6 +505,7 @@ def train(training,iterations):
 
 
 import copy
+import os
 
 cv_logs = []
 def cv_training(training,it):
@@ -515,10 +516,12 @@ def cross_validation(training,iterations=1):
     global cv_logs
     training_copy = None
     for i in range(10):
-        neg_sample = 2
         load_env(ds_name=dataset_name,ns=neg_sample,st=strategy,sp=create_new_split,we=word_embedding_encoding,cv=i)
         training_copy = copy.deepcopy(training)
         cv_logs.append(cv_training(training_copy,iterations))
-    file_out = open("./results/"+training_copy.gen_path+"/tmp_cv_result.txt",'w') 
+    outdir = "./results/"+training_copy.gen_path
+    if not os.path.exists(outdir):
+        Path(outdir).mkdir(parents=True, exist_ok=True)    
+    file_out = open(outdir+"/tmp_cv_result.txt",'w') 
     file_out.writelines(str(cv_logs))
 

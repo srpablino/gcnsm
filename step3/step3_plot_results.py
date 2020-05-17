@@ -18,7 +18,7 @@ def reading(file_path):
 
 #parameters for iterations
 colors = ["red","green","blue","orange","black","pink","grey","skyblue","yellow","brown"]
-loss_parameters = ["0.9+mean","0.7+mean","0.5+mean","0.3+mean","0.1+mean"]
+loss_parameters = ["0.9+mean","0.7+mean","0.5+mean","0.4+mean","0.3+mean","0.1+mean"]
 learning_rates = [1e-2,5e-2,2e-3,4e-3,8e-3,1e-3,5e-4,7e-4]
 splits = ["32","64","128","256","512","1024"]
 ep_run_init = ["00","50","100","30","150"]
@@ -46,7 +46,7 @@ def plot_by_loss_parameters(sampling,db,st,a,op,lf,subpath=""):
 #     op = optimizer[1]
 #     lf = loss_functions[0]
 
-    path = str("./results/{}/{}/{}/test_05_09/net_name:{}/optimizer_name:{}/loss_name:{}/".format(db,st,sampling,a,op,lf))
+    path = str("./results/{}/{}/{}/net_name:{}/optimizer_name:{}/loss_name:{}/".format(db,st,sampling,a,op,lf))
     path += subpath
     for s in splits:
         for lr in learning_rates:
@@ -121,7 +121,7 @@ def plot_by_split(sampling,db,st,a,op,lf,subpath=""):
 #     op = optimizer[0]
 #     lf = loss_functions[0]
 
-    path = str("./results/{}/{}/{}/test_05_09/net_name:{}/optimizer_name:{}/loss_name:{}/".format(db,st,sampling,a,op,lf))
+    path = str("./results/{}/{}/{}/net_name:{}/optimizer_name:{}/loss_name:{}/".format(db,st,sampling,a,op,lf))
     path +=subpath
     for lp in range(len(loss_parameters)):                    
         for lr in learning_rates:

@@ -3,5 +3,10 @@ word_embeddings/*
 .ipynb_checkpoints/*
 openML/*
 draft_test.ipynb
+step3_gcn_logistic.ipynb
+step3_gcnsm.ipynb
+step3_gcn_softmax.ipynb
+step3_plot_results.ipynb
+tests.ipynb
 *.png
 __pycache__

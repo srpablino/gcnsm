@@ -19,7 +19,7 @@ def reading(file_path):
 #parameters for iterations
 colors = ["red","green","blue","orange","black","pink","grey","skyblue","yellow","brown"]
 loss_parameters = ["0.9+mean","0.7+mean","0.5+mean","0.4+mean","0.3+mean","0.1+mean"]
-learning_rates = [1e-2,5e-2,2e-3,4e-3,8e-3,1e-3,5e-4,7e-4]
+learning_rates = [1e-2,5e-2,1e-3,2e-3,4e-3,5e-3,8e-3,5e-4,7e-4]
 splits = ["32","64","128","256","512","1024"]
 ep_run_init = ["00","50","100","30","150"]
 ep_run_end = ["50","60","70","80","100","150","200"]

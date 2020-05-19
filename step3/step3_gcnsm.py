@@ -506,6 +506,8 @@ def train(training,iterations):
 
 import copy
 import os
+from pathlib import Path
+
 
 cv_logs = []
 def cv_training(training,it):
@@ -524,4 +526,5 @@ def cross_validation(training,iterations=1):
         Path(outdir).mkdir(parents=True, exist_ok=True)    
     file_out = open(outdir+"/tmp_cv_result.txt",'w') 
     file_out.writelines(str(cv_logs))
+    file_out.close()
 

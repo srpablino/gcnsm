@@ -56,7 +56,7 @@ def load_env(ds_name=None,ns=None,st=None,sp=None,we=None,cv=-1):
         parameter_error("create_new_split",create_new_split)
     else:
         create_new_split = sp
-    if we == None or not str(we) or we not in ["BERT","FASTTEXT"]:
+    if we == None or not str(we) or we not in ["BERT","FASTTEXT","FASTTEXT2"]:
         parameter_error("word_embedding_encoding",word_embedding_encoding)
     else:
         word_embedding_encoding = we
@@ -115,6 +115,8 @@ def load_graph():
     
     if word_embedding_encoding == "FASTTEXT":
         g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext.gpickle")
+    if word_embedding_encoding == "FASTTEXT2":
+        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_v2.gpickle")    
     if word_embedding_encoding == "BERT":
         g_x = nx.read_gpickle("./word_embeddings/encoded_bert.gpickle")
 

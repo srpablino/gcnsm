@@ -4,4 +4,5 @@ word_embeddings/*
 openML/*
 draft_test.ipynb
 *.png
+step2/resources/fasttext.bin
 __pycache__

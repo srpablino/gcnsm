@@ -337,7 +337,7 @@ def get_options():
     for name, obj in inspect.getmembers(sys.modules[__name__]):
         if inspect.isclass(obj):
             nn = str(obj).split(".")[-1].split("'")[0]
-            if nn != "GCNLayer_concatenate":
+            if nn not in ["GCNLayer_concatenate","GCNLayer_sum"]:
                 list_nn[i] = nn
                 i+=1
     return list_nn

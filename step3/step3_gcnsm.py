@@ -3,7 +3,7 @@
 
 # # Get dataset with ~80% train, ~20% test
 
-# In[1]:
+# In[ ]:
 
 
 import numpy as np
@@ -103,7 +103,7 @@ def load_env(ds_name=None,ns=None,st=None,sp=None,we=None,cv=-1):
 
 # # Read graph of metafeatures
 
-# In[2]:
+# In[ ]:
 
 
 import networkx as nx 
@@ -158,7 +158,7 @@ def load_graph():
 
 # ### Export graph to deep graph library
 
-# In[3]:
+# In[ ]:
 
 
 import dgl
@@ -181,7 +181,7 @@ def load_dgl():
 
 # ### Evaluation methods
 
-# In[16]:
+# In[ ]:
 
 
 # Accuracy based on thresholds of distance (e.g. cosine > 0.8 should be a positive pair)
@@ -376,7 +376,7 @@ def evaluate(model, g, features, mask,loss):
 
 # ### Train loop
 
-# In[5]:
+# In[ ]:
 
 
 import time
@@ -466,7 +466,7 @@ def train(training,iterations):
 # ### Load training class to save/load/train experiments:
 # <b>from step3 import step3_gcn_train as gcn_train</b>
 
-# In[8]:
+# In[ ]:
 
 
 # from step3 import step3_gcn_nn_concatenate as gcn_nn
@@ -516,17 +516,25 @@ def cv_training(training,it):
     train(training,iterations=it)
     return training.log
 
-def cross_validation(training,iterations=1):
+def cross_validation(training,iterations=1,ran="1-10"):
     global cv_logs
+    
+    cv_ran = ran.split("-")
+    init = int(cv_ran[0]) -1
+    ending = int(cv_ran[1])
+    if init < 0 or ending >10:
+        print("Out of range: CV is from 1 to 10")
+    
+    
     training_copy = None
-    for i in range(10):
+    for i in range(init,ending):
         load_env(ds_name=dataset_name,ns=neg_sample,st=strategy,sp=create_new_split,we=word_embedding_encoding,cv=i)
         training_copy = copy.deepcopy(training)
         cv_logs.append(cv_training(training_copy,iterations))
-    outdir = "./results/"+training_copy.gen_path
-    if not os.path.exists(outdir):
-        Path(outdir).mkdir(parents=True, exist_ok=True)    
-    file_out = open(outdir+"/tmp_cv_result.txt",'w') 
-    file_out.writelines(str(cv_logs))
-    file_out.close()
+        outdir = "./results/"+training_copy.gen_path
+        if not os.path.exists(outdir):
+            Path(outdir).mkdir(parents=True, exist_ok=True)    
+        file_out = open(outdir+"/tmp_cv_result_"+str(i)+".txt",'w') 
+        file_out.writelines(str(cv_logs))
+        file_out.close()
 

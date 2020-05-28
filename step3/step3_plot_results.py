@@ -85,27 +85,33 @@ def plot_by_loss_parameters(sampling,db,st,a,op,lf,subpath=""):
                         acc2 = list(x["acc2"] for x in df_results0)
 
                         fig1.suptitle(str("NegSample: {}x Optimizer: {} Architecture: {} Loss: {} lr: {:.0e} splits: {}").format(sampling,op,a,lf,lr,s),fontsize=18)
-                        axs[1].set_ylim([0.5,1.0])
-    #                     axs[2].set_ylim([0,1])
+                        
+                        axs[0].yaxis.grid(True)
+                        axs[0].tick_params(labelsize=16)
 
+                        axs[1].set_ylim([0.5,1.0])
                         axs[1].set_yticks(np.arange(0.5, 1.05, 0.05))
                         axs[1].yaxis.grid(True)
-                        axs[0].yaxis.grid(True)
                         axs[1].tick_params(labelsize=16)
-                        axs[0].tick_params(labelsize=16)
-    #                     axs[2].set_yticks(np.arange(0, 1.1, 0.1))
-
+                        
                         axs[0].plot(range(0,len(df_results0)), loss, marker="o", c=colors[lp],  linestyle='--', label=" Loss parameters: margin="+loss_parameters[lp])
                         axs[1].plot(range(0,len(df_results0)), acc, marker="o", c=colors[lp],  linestyle='--', label=" Loss parameters: margin="+loss_parameters[lp])
-    #                     axs[2].plot(range(0,len(df_results0)), acc2, marker="o", c=colors[lp],  linestyle='--', label=" Loss parameters: margin="+loss_parameters[lp])
+                        
 
                         axs[0].set_title("Train loss (x1000)",fontsize=16)
                         axs[1].set_title("Test accuracy Trheshold",fontsize=16)
-    #                     axs[2].set_title("Test accuracy Nearest neighbor")
+                        
 
                         leg = axs[0].legend(loc='best', ncol=1, shadow=True, fancybox=True)
                         leg = axs[1].legend(loc='best', ncol=1, shadow=True, fancybox=True)
-    #                     leg = axs[2].legend(loc='best', ncol=1, shadow=True, fancybox=True)
+                        
+#                         axs[2].set_ylim([0,1])
+#                         axs[2].set_yticks(np.arange(0, 1.1, 0.1))
+#                         axs[2].yaxis.grid(True)
+#                         axs[2].tick_params(labelsize=16)
+#                         axs[2].plot(range(0,len(df_results0)), acc2, marker="o", c=colors[lp],  linestyle='--', label=" Loss parameters: margin="+loss_parameters[lp])
+#                         axs[2].set_title("Test accuracy Nearest neighbor",fontsize=16)
+#                         leg = axs[2].legend(loc='best', ncol=1, shadow=True, fancybox=True)
                             
 
                     fig1.savefig(path+str("batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(s,lr,eri,ere))+".png",pad_inches = 0)
@@ -290,17 +296,17 @@ def plot_cv_2(sampling,db,st,a,op,lf,subpath=""):
         for lr in learning_rates:
             for eri in ep_run_init:
                 for ere in ep_run_end:
-                    content = False
                     for lp in range(len(loss_parameters)): 
+                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],s,lr,eri,ere))
+
+                        ##sub_folders
+                        if os.path.exists(path+file_name+"/"):
+                            plot_cv_2(sampling,db,st,a,op,lf,file_name+"/")
+                                
+                        content = False
                         for cv_i in range(10):
-                            file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],s,lr,eri,ere))
-
-                            ##sub_folders
-                            if os.path.exists(path+file_name+"/"):
-                                plot_cv_2(sampling,db,st,a,op,lf,file_name+"/")
-
                             try:
-                                df_results0 = reading(path+file_name+"/tmp_cv_result_"+str(cv_i)+".txt")
+                                df_ = reading(path+file_name+"/tmp_cv_result_"+str(cv_i)+".txt")
                             except:
         #                         print(path+file_name+".txt")
                                 continue
@@ -311,15 +317,15 @@ def plot_cv_2(sampling,db,st,a,op,lf,subpath=""):
                             continue
 
                         fig1, axs = plt.subplots(1, 2, figsize=(35, 10), facecolor='w', edgecolor='k')
+                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],s,lr,eri,ere))
+                        
                         df_results0 = []
-                        for cv_i in range(10):
-                            file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],s,lr,eri,ere))
-                            #{'epoch': 0, 'loss': 0.07563, 'acc': 0.54412, 'acc2': 0.36527, 'time_epoch': 268.2493, 'time_total': 268.2493}    
+                        for cv_i in range(10):                            
                             try:
                                 df_ = reading(path+file_name+"/tmp_cv_result_"+str(cv_i)+".txt")
                             except:
                                 continue
-                            df_results0.append(df_[0])
+                            df_results0.append(df_[cv_i])
                         max_acc_list = []
                         for i in  range (len(df_results0)):
                             logs = df_results0[i]

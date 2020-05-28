@@ -80,7 +80,7 @@ def load_env(ds_name=None,ns=None,st=None,sp=None,we=None,cv=-1):
         test_mask = pd.read_csv("./datasets/"+path_setup+"/test.csv").to_numpy()
     
     else:
-        if cross_v == 0:
+        if cross_v == 0 and create_new_split:
             print("Creating cross validation splits...")
             path_setup = ds_split.split_ds(dataset_name,strategy,neg_sample,True)
         else:
@@ -516,8 +516,13 @@ def cv_training(training,it):
     train(training,iterations=it)
     return training.log
 
-def cross_validation(training,iterations=1,ran="1-10"):
+def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
     global cv_logs
+    
+    if nsample == None:
+        nsample = neg_sample
+    if create == None:
+        create = create_new_split
     
     cv_ran = ran.split("-")
     init = int(cv_ran[0]) -1
@@ -528,7 +533,8 @@ def cross_validation(training,iterations=1,ran="1-10"):
     
     training_copy = None
     for i in range(init,ending):
-        load_env(ds_name=dataset_name,ns=neg_sample,st=strategy,sp=create_new_split,we=word_embedding_encoding,cv=i)
+        cv_logs=[]
+        load_env(ds_name=dataset_name,ns=nsample,st=strategy,sp=create,we=word_embedding_encoding,cv=i)
         training_copy = copy.deepcopy(training)
         cv_logs.append(cv_training(training_copy,iterations))
         outdir = "./results/"+training_copy.gen_path

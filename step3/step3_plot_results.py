@@ -325,7 +325,7 @@ def plot_cv_2(sampling,db,st,a,op,lf,subpath=""):
                                 df_ = reading(path+file_name+"/tmp_cv_result_"+str(cv_i)+".txt")
                             except:
                                 continue
-                            df_results0.append(df_[cv_i])
+                            df_results0.append(df_[0])
                         max_acc_list = []
                         for i in  range (len(df_results0)):
                             logs = df_results0[i]
@@ -351,12 +351,11 @@ def plot_cv_2(sampling,db,st,a,op,lf,subpath=""):
                             axs[1].set_title("Test accuracy Trheshold",fontsize=16)
         #                     axs[2].set_title("Test accuracy Nearest neighbor")
 
-                            leg = axs[0].legend(loc='best', ncol=1, shadow=True, fancybox=True)
-                            leg = axs[1].legend(loc='best', ncol=1, shadow=True, fancybox=True)
+                            leg = axs[0].legend(loc='best', ncol=1, shadow=True, fancybox=True,fontsize=16)
+                            leg = axs[1].legend(loc='best', ncol=1, shadow=True, fancybox=True,fontsize=16)
         #                     leg = axs[2].legend(loc='best', ncol=1, shadow=True, fancybox=True)
                         max_acc_avg = np.average(np.array(max_acc_list))
                         fig1.suptitle(file_name+"_Cross_validation. MAX ACC AVG = "+str(max_acc_avg),fontsize=18)
                         fig1.savefig(path+file_name+"/tmp_cv_results.png",pad_inches = 0)
 
 # plot_cv()
-

@@ -1,6 +1,7 @@
 old/*
 word_embeddings/*
 .ipynb_checkpoints/*
+**/.ipynb_checkpoints/*
 openML/*
 draft_test.ipynb
 *.png

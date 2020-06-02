@@ -18,11 +18,12 @@ def reading(file_path):
 
 #parameters for iterations
 colors = ["red","green","blue","orange","black","pink","grey","skyblue","yellow","brown"]
-loss_parameters = ["0.9+mean","0.7+mean","0.5+mean","0.4+mean","0.3+mean","0.1+mean"]
+loss_parameters = ["0.9+mean","0.7+mean","0.5+mean","0.4+mean","0.3+mean","0.35+mean","0.1+mean"]
 learning_rates = [1e-2,2e-2,4e-2,5e-2,1e-3,2e-3,4e-3,5e-3,8e-3,5e-4,7e-4]
 splits = ["32","64","128","256","512","1024"]
-ep_run_init = ["00","30","50","100","125","150","175","200","250","300"]
+ep_run_init = ["00","30","50","60","100","125","150","175","200","250","300"]
 ep_run_end = ["50","60","70","80","100","125","150","175","200","250","300","400"]
+# ep_run_end = ["100","125","150","175","200","250","300","400"]
 
 #options
 db_name = ["openml_203ds_datasets_matching"]
@@ -90,7 +91,7 @@ def plot_by_loss_parameters(sampling,db,st,a,op,lf,subpath=""):
                         axs[0].tick_params(labelsize=16)
 
                         axs[1].set_ylim([0.5,1.0])
-                        axs[1].set_yticks(np.arange(0.5, 1.05, 0.05))
+                        axs[1].set_yticks(np.arange(0.5, 1.05, 0.025))
                         axs[1].yaxis.grid(True)
                         axs[1].tick_params(labelsize=16)
                         
@@ -99,7 +100,7 @@ def plot_by_loss_parameters(sampling,db,st,a,op,lf,subpath=""):
                         
 
                         axs[0].set_title("Train loss (x1000)",fontsize=16)
-                        axs[1].set_title("Test accuracy Trheshold",fontsize=16)
+                        axs[1].set_title("Test accuracy Trheshold. Max accuracy: "+ str(get_max_acc(acc)),fontsize=16)
                         
 
                         leg = axs[0].legend(loc='best', ncol=1, shadow=True, fancybox=True)
@@ -184,7 +185,7 @@ def plot_by_split(sampling,db,st,a,op,lf,subpath=""):
     #                     axs[2].plot(range(0,len(df_results0)), acc2, marker="o", c=colors[s],  linestyle='--', label="split= "+splits[s])
 
                         axs[0].set_title("Train loss (x1000)",fontsize=16)
-                        axs[1].set_title("Test accuracy Trheshold",fontsize=16)
+                        axs[1].set_title("Test accuracy Trheshold. Max accuracy: " + str(get_max_acc(acc)),fontsize=16)
     #                     axs[2].set_title("Test accuracy Nearest neighbor")
 
                         leg = axs[0].legend(loc='best', ncol=1, shadow=True, fancybox=True)

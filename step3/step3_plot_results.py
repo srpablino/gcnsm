@@ -96,15 +96,14 @@ def plot_by_loss_parameters(sampling,db,st,a,op,lf,subpath=""):
                         axs[1].tick_params(labelsize=16)
                         
                         axs[0].plot(range(0,len(df_results0)), loss, marker="o", c=colors[lp],  linestyle='--', label=" Loss parameters: margin="+loss_parameters[lp])
-                        axs[1].plot(range(0,len(df_results0)), acc, marker="o", c=colors[lp],  linestyle='--', label=" Loss parameters: margin="+loss_parameters[lp])
-                        
+                        axs[1].plot(range(0,len(df_results0)), acc, marker="o", c=colors[lp],  linestyle='--', label=" Loss parameters: margin="+loss_parameters[lp] + "max acc: "+ str(get_max_acc(acc)))
 
                         axs[0].set_title("Train loss (x1000)",fontsize=16)
-                        axs[1].set_title("Test accuracy Trheshold. Max accuracy: "+ str(get_max_acc(acc)),fontsize=16)
+                        axs[1].set_title("Test accuracy Trheshold",fontsize=16)
                         
 
-                        leg = axs[0].legend(loc='best', ncol=1, shadow=True, fancybox=True)
-                        leg = axs[1].legend(loc='best', ncol=1, shadow=True, fancybox=True)
+                        leg = axs[0].legend(loc='best', ncol=1, shadow=True, fancybox=True,fontsize=16)
+                        leg = axs[1].legend(loc='best', ncol=1, shadow=True, fancybox=True,fontsize=16)
                         
 #                         axs[2].set_ylim([0,1])
 #                         axs[2].set_yticks(np.arange(0, 1.1, 0.1))
@@ -181,15 +180,15 @@ def plot_by_split(sampling,db,st,a,op,lf,subpath=""):
                         axs[0].tick_params(labelsize=16)
                     
                         axs[0].plot(range(0,len(df_results0)), loss, marker="o", c=colors[s],  linestyle='--', label="split= "+splits[s])
-                        axs[1].plot(range(0,len(df_results0)), acc, marker="o", c=colors[s],  linestyle='--', label="split= "+splits[s])
+                        axs[1].plot(range(0,len(df_results0)), acc, marker="o", c=colors[s],  linestyle='--', label="split= "+splits[s] + "max acc: "+ str(get_max_acc(acc)))
     #                     axs[2].plot(range(0,len(df_results0)), acc2, marker="o", c=colors[s],  linestyle='--', label="split= "+splits[s])
 
                         axs[0].set_title("Train loss (x1000)",fontsize=16)
-                        axs[1].set_title("Test accuracy Trheshold. Max accuracy: " + str(get_max_acc(acc)),fontsize=16)
+                        axs[1].set_title("Test accuracy Trheshold",fontsize=16)
     #                     axs[2].set_title("Test accuracy Nearest neighbor")
 
-                        leg = axs[0].legend(loc='best', ncol=1, shadow=True, fancybox=True)
-                        leg = axs[1].legend(loc='best', ncol=1, shadow=True, fancybox=True)
+                        leg = axs[0].legend(loc='best', ncol=1, shadow=True, fancybox=True,fontsize=16)
+                        leg = axs[1].legend(loc='best', ncol=1, shadow=True, fancybox=True,fontsize=16)
     #                     leg = axs[2].legend(loc='best', ncol=1, shadow=True, fancybox=True)
 
                     fig1.savefig(path+str("loss_parameters:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],lr,eri,ere))+".png",pad_inches = 0)

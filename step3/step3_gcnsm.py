@@ -192,7 +192,7 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_di
     
     z1, z2 = model(g,features,mask[:,0],mask[:,1])
     
-    #dist() | m - dist()
+    #dist() | max(0, m - dist())
     if loss == "ContrastiveLoss" or loss == "Euclidean":
         pdist = th.nn.PairwiseDistance(p=2)        
         result = pdist(z1,z2)
@@ -384,6 +384,8 @@ import numpy as np
 def train(training,iterations):
     dur = []
     max_acc = 0.0
+    max_acc2 = 0.0
+    not_improving = 0
     ## create batchs for training
     numb_splits = int(len(train_mask) / training.batch_splits) + 1
     train_batch = np.array_split(train_mask,numb_splits)
@@ -432,78 +434,30 @@ def train(training,iterations):
         print(str(output))
         
         ##save best model and results found so far
-        if acc2 + acc > max_acc:
+        if acc > max_acc:
             print("Best model found so far...")
-            training.save_state(path_setup+"/best")
-            max_acc = acc2 + acc 
-        
+            training.set_best(training)
+            max_acc = acc
+            max_acc2 = acc2
+            not_improving = 0
+        else        
+            if acc == max_acc and acc2 > max_acc2:
+                print("Best model found so far...")
+                training.set_best(training)
+                max_acc = acc
+                max_acc2 = acc2
+                not_improving = 0
+            #if not improvments for 30 epochs in a row, then stop    
+            else:
+                if not_improving < 30:
+                    not_improving +=1
+                else:
+                    break
+                    
+                 
     #save final model state and final results
     training.save_state(path_setup)
 
-
-# ### Config and run training
-# ### NN architectures: 
-# {<br>
-#     "0": "Bert_300", <br>
-#     "1": "Bert_300_300_200", <br>
-#     "2": "Bert_768", <br>
-#     "3": "Fasttext3GCN_300" <br>
-#     "4": "Fasttext_150", <br>
-#     "5": "Fasttext_150_150_100", <br>
-#     "6": "Fasttext_300" <br>
-# }
-# ### Loss functions: 
-# {<br>
-#     "0": "ContrastiveLoss", <br>
-#     "1": "CosineEmbeddingLoss", <br>
-# }
-# ### Example to define architecture and loss
-# <b>from step3 import step3_gcn_nn_concatenate as gcn_nn</b> <br>
-# <b>from step3 import step3_gcn_loss as gcn_loss</b> <br>
-# print(gcn_nn.get_options()) #list of options<br>
-# print(gcn_loss.get_options()) #list of options<br>
-# 
-# ### Load training class to save/load/train experiments:
-# <b>from step3 import step3_gcn_train as gcn_train</b>
-
-# In[ ]:
-
-
-# from step3 import step3_gcn_nn_concatenate as gcn_nn
-# from step3 import step3_gcn_loss as gcn_loss
-# from step3 import step3_gcn_training as gcn_training
-#load_env(ns=None,st=None,sp=None,we=None)
-
-
-# #load model from path
-# training = gcn_training.Training()
-# training.load_state(path="./models/[file_name].pt")
-# train(training,iterations=N)
-
-# #train new model and specify parameters
-# training = gcn_training.Training()
-# training.set_training(
-#             net_name= gcn_nn.get_option_name(),  #_of_option for NN architecture
-#             batch_splits= ,#_of_sets(this will (give dataset / batch_splits) size of batch
-#             lr= , #learning rate for training (e.g. 1e-3 )
-#             loss_name=gcn_loss.get_option_name() #_of_option for loss ,
-#             loss_parameters=) #loss function parameters separated by '+' e.g. for cosine and contrastive "0.0+mean" 
-# train(training,iterations=N)
-
-
-# ### Test suite
-
-# In[ ]:
-
-
-# training = gcn_training.Training()
-# training.load_state(path="./models/random/2/net_name:Fasttext_300|batch_splits:28.0000|lr:0.0010|loss_name:ContrastiveLoss|loss_parameters:0.7+mean.pt")
-#train(training,iterations=N)
-
-
-# ### Cross validation
-
-# In[ ]:
 
 
 import copy
@@ -511,10 +465,10 @@ import os
 from pathlib import Path
 
 
-cv_logs = []
-def cv_training(training,it):
-    train(training,iterations=it)
-    return training.log
+# cv_logs = []
+# def cv_training(training,it):
+#     train(training,iterations=it)
+#     return training.log
 
 def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
     global cv_logs
@@ -533,14 +487,19 @@ def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
     
     training_copy = None
     for i in range(init,ending):
-        cv_logs=[]
+#         cv_logs=[]
         load_env(ds_name=dataset_name,ns=nsample,st=strategy,sp=create,we=word_embedding_encoding,cv=i)
         training_copy = copy.deepcopy(training)
-        cv_logs.append(cv_training(training_copy,iterations))
-        outdir = "./results/"+training_copy.gen_path
-        if not os.path.exists(outdir):
-            Path(outdir).mkdir(parents=True, exist_ok=True)    
-        file_out = open(outdir+"/tmp_cv_result_"+str(i)+".txt",'w') 
-        file_out.writelines(str(cv_logs))
-        file_out.close()
+        train(training_copy,iterations)
+#         cv_logs.append(cv_training(training_copy,iterations))
+#         outdir = "./results/"+training_copy.gen_path
+#         if not os.path.exists(outdir):
+#             Path(outdir).mkdir(parents=True, exist_ok=True)    
+#         file_out = open(outdir+"/tmp_cv_result_"+str(i)+".txt",'w') 
+#         file_out.writelines(str(cv_logs))
+#         file_out.close()
+        
+        ##new save method
+        path_setup = dataset_name+"/"+strategy+"/"+str(neg_sample)+"/cv"
+        training_copy.save_state(path_setup,"/tmp_cv_result_"+str(i))
 

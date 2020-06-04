@@ -24,6 +24,7 @@ class Training():
         self.runtime_seconds = 0
         self.log = []
         self.gen_path = ""
+        self.best = None
         
     def set_training(self, net_name,batch_splits,lr,loss_name,loss_parameters,optimizer_name="adam"):
         self.net_name = net_name
@@ -41,6 +42,12 @@ class Training():
             self.optimizer = th.optim.Adam(self.net.parameters(),self.lr,weight_decay=0.001)
         if self.optimizer_name == "sgd":
             self.optimizer = th.optim.SGD(self.net.parameters(), lr=self.lr, momentum=0.9, weight_decay=0.001)
+            
+    import copy
+    def set_best(self,best):
+        best_copy = copy.deepcopy(best)
+        best_copy.best = None
+        self.best = best_copy
     
     def set_lr(self,lr):
         self.lr = lr
@@ -48,7 +55,7 @@ class Training():
             self.optimizer.param_groups[0]['lr']=self.lr
         
     
-    def save_state(self,path_setup=""):
+    def save_state(self,path_setup="",cv_path=""):
         state = {}
         if self.net != None:
             state['net'] = self.net.state_dict()
@@ -95,13 +102,17 @@ class Training():
             if not os.path.exists(outdir_result):
                 Path(outdir_result).mkdir(parents=True, exist_ok=True)
                 
-            path_model = outdir_model+"/"+save_path+".pt"
-            path_result = outdir_result+"/"+save_path+".txt"
+            path_model = outdir_model+"/"+save_path+cv_path+".pt"
+            path_result = outdir_result+"/"+save_path+cv_path+".txt"
             th.save(state, path_model)
             file_out = open(path_result,'w') 
             file_out.writelines(str(self.log))
             file_out.close()
             print("Model and results saved")
+            
+            if self.best != None:
+                print("Saving best model...")
+                self.best.save_state(path_setup+"/best")
         else:
             print("Nothing to save")
         

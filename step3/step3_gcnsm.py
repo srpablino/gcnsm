@@ -440,7 +440,7 @@ def train(training,iterations):
             max_acc = acc
             max_acc2 = acc2
             not_improving = 0
-        else        
+        else:        
             if acc == max_acc and acc2 > max_acc2:
                 print("Best model found so far...")
                 training.set_best(training)

@@ -383,8 +383,19 @@ import time
 import numpy as np
 def train(training,iterations):
     dur = []
+    
+    #set max accuracy found if model already has state
     max_acc = 0.0
     max_acc2 = 0.0
+    if len(training.log) > 0:
+        for l in training.log:
+            if l["acc"] > max_acc:
+                max_acc = l["acc"]
+                max_acc2 = l["acc2"]
+            else:        
+                if l["acc"] == max_acc and l["acc2"] > max_acc2:
+                    max_acc2 = l["acc2"]
+            
     not_improving = 0
     ## create batchs for training
     numb_splits = int(len(train_mask) / training.batch_splits) + 1

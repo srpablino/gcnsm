@@ -84,10 +84,14 @@ class Training():
                 save_dir = save_dir+"/"+parent_path.split(".pt")[0]+"/"
             
             
-            save_path = str("loss_parameters:{} | batch_splits:{} | lr:{:.0e} |  epochs_run:{}".
+            #standard e notation for lr
+            enot = str("{:e}".format(self.lr))
+            enot = enot.split("e")[0].rstrip('0').rstrip(".")+"e"+enot.split("e")[1]
+            
+            save_path = str("loss_parameters:{} | batch_splits:{} | lr:{} |  epochs_run:{}".
                             format(self.loss_parameters,
                                    self.batch_splits,
-                                   self.lr,
+                                   enot,
                                    from_epoch+"_"+str("{:02d}".format(self.epochs_run))
                                   )).replace(" ","")
             

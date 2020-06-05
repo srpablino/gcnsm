@@ -67,7 +67,7 @@ class Training():
             state['loss_parameters'] = self.loss_parameters
             state['optimizer_name'] = self.optimizer_name
             state['optimizer'] = self.optimizer.state_dict()
-            state['epochs_run'] = self.epochs_run
+            state['epochs_run'] = self.log[-1]['epoch']+1
             state['log'] = self.log
             state['runtime_seconds'] = self.runtime_seconds
             from_epoch = "00"

@@ -453,6 +453,8 @@ def train(training,iterations):
                     not_improving +=1
                 else:
                     print("Not improving anymore...finishing training.")
+                    pad = iterations - epoch
+                    training.epochs_run+=pad
                     break
                     
                  

@@ -452,6 +452,7 @@ def train(training,iterations):
                 if not_improving < 30:
                     not_improving +=1
                 else:
+                    print("Not improving anymore...finishing training.")
                     break
                     
                  
@@ -487,19 +488,8 @@ def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
     
     training_copy = None
     for i in range(init,ending):
-#         cv_logs=[]
         load_env(ds_name=dataset_name,ns=nsample,st=strategy,sp=create,we=word_embedding_encoding,cv=i)
         training_copy = copy.deepcopy(training)
         train(training_copy,iterations)
-#         cv_logs.append(cv_training(training_copy,iterations))
-#         outdir = "./results/"+training_copy.gen_path
-#         if not os.path.exists(outdir):
-#             Path(outdir).mkdir(parents=True, exist_ok=True)    
-#         file_out = open(outdir+"/tmp_cv_result_"+str(i)+".txt",'w') 
-#         file_out.writelines(str(cv_logs))
-#         file_out.close()
-        
-        ##new save method
         path_setup = dataset_name+"/"+strategy+"/"+str(neg_sample)+"/cv"
         training_copy.save_state(path_setup,"/tmp_cv_result_"+str(i))
-

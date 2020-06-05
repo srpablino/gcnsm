@@ -3,6 +3,7 @@ from step3 import step3_gcn_loss as gcn_loss
 import torch as th
 import os    
 from pathlib import Path
+import copy
 # print(gcn_nn.get_options())
 # print(gcn_loss.get_options())
 # print(gcn_nn.get_instance(0,None))
@@ -43,7 +44,6 @@ class Training():
         if self.optimizer_name == "sgd":
             self.optimizer = th.optim.SGD(self.net.parameters(), lr=self.lr, momentum=0.9, weight_decay=0.001)
             
-    import copy
     def set_best(self,best):
         best_copy = copy.deepcopy(best)
         best_copy.best = None
@@ -53,6 +53,7 @@ class Training():
         self.lr = lr
         if self.optimizer != None:
             self.optimizer.param_groups[0]['lr']=self.lr
+        
         
     
     def save_state(self,path_setup="",cv_path=""):
@@ -94,16 +95,31 @@ class Training():
             outpath = outdir +"/"+save_path
             self.gen_path = outpath
             
-            outdir_model = "./models/"+ outdir
-            if not os.path.exists(outdir_model):
-                Path(outdir_model).mkdir(parents=True, exist_ok=True)
+            if cv_path == "":
+                outdir_model = "./models/"+ outdir
+                if not os.path.exists(outdir_model):
+                    Path(outdir_model).mkdir(parents=True, exist_ok=True)
+
+                outdir_result = "./results/"+ outdir
+                if not os.path.exists(outdir_result):
+                    Path(outdir_result).mkdir(parents=True, exist_ok=True)
                 
-            outdir_result = "./results/"+ outdir
-            if not os.path.exists(outdir_result):
-                Path(outdir_result).mkdir(parents=True, exist_ok=True)
+                path_model = outdir_model+"/"+save_path+".pt"
+                path_result = outdir_result+"/"+save_path+".txt"
                 
-            path_model = outdir_model+"/"+save_path+cv_path+".pt"
-            path_result = outdir_result+"/"+save_path+cv_path+".txt"
+            else:
+                outdir_model = "./models/"+ outdir +"/"+save_path
+                if not os.path.exists(outdir_model):
+                    Path(outdir_model).mkdir(parents=True, exist_ok=True)
+
+                outdir_result = "./results/"+ outdir +"/"+save_path
+                if not os.path.exists(outdir_result):
+                    Path(outdir_result).mkdir(parents=True, exist_ok=True)
+                
+                path_model = outdir_model+cv_path+".pt"
+                path_result = outdir_result+cv_path+".txt"
+                
+            
             th.save(state, path_model)
             file_out = open(path_result,'w') 
             file_out.writelines(str(self.log))
@@ -112,7 +128,7 @@ class Training():
             
             if self.best != None:
                 print("Saving best model...")
-                self.best.save_state(path_setup+"/best")
+                self.best.save_state(path_setup+"/best",cv_path)
         else:
             print("Nothing to save")
         

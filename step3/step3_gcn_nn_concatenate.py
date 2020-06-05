@@ -166,6 +166,34 @@ class FasttextSum_150(nn.Module):
         z2 = F.normalize(z2, p=2, dim=1)
         
         return z1,z2
+
+class FasttextSumd_150(nn.Module):
+    def __init__(self):
+        super(FasttextSumd_150, self).__init__()
+        
+        self.layer1 = GCNLayer_sum(364, 364)
+        self.bn1 = nn.BatchNorm1d(num_features=364)
+        self.dp1 = nn.Dropout()
+        self.layer2 = GCNLayer_sum(364, 364)
+        self.bn2 = nn.BatchNorm1d(num_features=364)
+        self.dp2 = nn.Dropout()
+        
+        #particular layers
+        self.layer3 = nn.Linear(364, 150)
+        
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
+    
     
 class Fasttext2_364(nn.Module):
     def __init__(self):
@@ -190,6 +218,33 @@ class Fasttext2_364(nn.Module):
         z2 = F.normalize(z2, p=2, dim=1)
         
         return z1,z2
+
+class Fasttext2d_364(nn.Module):
+    def __init__(self):
+        super(Fasttext2d_364, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(728, 364)
+        self.bn1 = nn.BatchNorm1d(num_features=364)
+        self.dp1 = nn.Dropout()
+        self.layer2 = GCNLayer_concatenate(728, 364)
+        self.bn2 = nn.BatchNorm1d(num_features=364)
+        self.dp2 = nn.Dropout()
+        
+        #particular layers
+        self.layer3 = nn.Linear(364, 364)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
+
     
 class Fasttext_150_150_100(nn.Module):
     def __init__(self):

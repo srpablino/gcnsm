@@ -449,7 +449,7 @@ def train(training,iterations):
                 not_improving = 0
             #if not improvments for 30 epochs in a row, then stop    
             else:
-                if not_improving < 30:
+                if not_improving < 100:
                     not_improving +=1
                 else:
                     print("Not improving anymore...finishing training.")

@@ -469,8 +469,9 @@ def train(training,iterations):
                     break
                     
                  
-    #save final model state and final results
-    training.save_state(path_setup)
+    #save final model state and final results if experiment is not a CV
+    if cross_v < 0:
+        training.save_state(path_setup)
 
 
 

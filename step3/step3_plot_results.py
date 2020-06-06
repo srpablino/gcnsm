@@ -19,7 +19,7 @@ def reading(file_path):
 #parameters for iterations
 colors = ["red","green","blue","orange","black","pink","grey","skyblue","yellow","brown"]
 loss_parameters = ["0.9+mean","0.7+mean","0.5+mean","0.4+mean","0.3+mean","0.35+mean","0.1+mean"]
-learning_rates = [1e-2,2e-2,4e-2,5e-2,1e-3,2e-3,4e-3,5e-3,8e-3,9e-3,5e-4,7e-4]
+learning_rates = [1e-2,1.5e-2,2e-2,4e-2,5e-2,1e-3,2e-3,4e-3,5e-3,8e-3,9e-3,5e-4,7e-4]
 splits = ["32","64","128","256","512","1024","2048"]
 ep_run_init = ["00","30","50","60","100","125","150","175","200","250","300"]
 ep_run_end = ["02","50","60","70","80","100","125","150","175","200","250","300","400"]
@@ -54,8 +54,11 @@ def plot_by_loss_parameters(sampling,db,st,a,op,lf,subpath=""):
             for eri in ep_run_init:
                 for ere in ep_run_end:
                     content = False
-                    for lp in range(len(loss_parameters)):                    
-                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],s,lr,eri,ere))
+                    for lp in range(len(loss_parameters)):
+                        enot = str("{:e}".format(lr))
+                        enot = enot.split("e")[0].rstrip('0').rstrip(".")+"e"+enot.split("e")[1]
+                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{}|epochs_run:{}_{}".format(loss_parameters[lp],s,enot,eri,ere))
+                       
                         
                         ##sub_folders
                         if os.path.exists(path+file_name+"/"):
@@ -74,7 +77,9 @@ def plot_by_loss_parameters(sampling,db,st,a,op,lf,subpath=""):
 
                     fig1, axs = plt.subplots(1, 2, figsize=(35, 10), facecolor='w', edgecolor='k')
                     for lp in range(len(loss_parameters)):                    
-                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],s,lr,eri,ere))
+                        enot = str("{:e}".format(lr))
+                        enot = enot.split("e")[0].rstrip('0').rstrip(".")+"e"+enot.split("e")[1]
+                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{}|epochs_run:{}_{}".format(loss_parameters[lp],s,enot,eri,ere))
                         #{'epoch': 0, 'loss': 0.07563, 'acc': 0.54412, 'acc2': 0.36527, 'time_epoch': 268.2493, 'time_total': 268.2493}    
                         try:
                             df_results0 = reading(path+file_name+".txt")
@@ -85,7 +90,7 @@ def plot_by_loss_parameters(sampling,db,st,a,op,lf,subpath=""):
                         acc = list(x["acc"] for x in df_results0)
                         acc2 = list(x["acc2"] for x in df_results0)
 
-                        fig1.suptitle(str("NegSample: {}x Optimizer: {} Architecture: {} Loss: {} lr: {:.0e} splits: {}").format(sampling,op,a,lf,lr,s),fontsize=18)
+                        fig1.suptitle(str("NegSample: {}x Optimizer: {} Architecture: {} Loss: {} lr: {} splits: {}").format(sampling,op,a,lf,enot,s),fontsize=18)
                         
                         axs[0].yaxis.grid(True)
                         axs[0].tick_params(labelsize=16)
@@ -140,7 +145,9 @@ def plot_by_split(sampling,db,st,a,op,lf,subpath=""):
                 for ere in ep_run_end:
                     content = False
                     for s in range(len(splits)):
-                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],splits[s],lr,eri,ere))
+                        enot = str("{:e}".format(lr))
+                        enot = enot.split("e")[0].rstrip('0').rstrip(".")+"e"+enot.split("e")[1]
+                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{}|epochs_run:{}_{}".format(loss_parameters[lp],s,enot,eri,ere))
                         
                         ##sub_folders
                         if os.path.exists(path+file_name+"/"):
@@ -159,7 +166,9 @@ def plot_by_split(sampling,db,st,a,op,lf,subpath=""):
 
                     fig1, axs = plt.subplots(1, 2, figsize=(35, 10), facecolor='w', edgecolor='k')
                     for s in range(len(splits)):
-                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],splits[s],lr,eri,ere))
+                        enot = str("{:e}".format(lr))
+                        enot = enot.split("e")[0].rstrip('0').rstrip(".")+"e"+enot.split("e")[1]
+                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{}|epochs_run:{}_{}".format(loss_parameters[lp],s,enot,eri,ere))
                         #{'epoch': 0, 'loss': 0.07563, 'acc': 0.54412, 'acc2': 0.36527, 'time_epoch': 268.2493, 'time_total': 268.2493}    
                         try:
                             df_results0 = reading(path+file_name+".txt")
@@ -170,7 +179,7 @@ def plot_by_split(sampling,db,st,a,op,lf,subpath=""):
                         acc = list(x["acc"] for x in df_results0)
                         acc2 = list(x["acc2"] for x in df_results0)
 
-                        fig1.suptitle(str("NegSample: {}x Optimizer: {} Architecture: {} Loss: {} lr: {:.0e} splits: {}").format(sampling,op,a,lf,lr,s),fontsize=18)
+                        fig1.suptitle(str("NegSample: {}x Optimizer: {} Architecture: {} Loss: {} lr: {} splits: {}").format(sampling,op,a,lf,enot,s),fontsize=18)
                         axs[1].set_ylim([0.5,1.0])
     #                     axs[2].set_ylim([0,1])
 
@@ -223,7 +232,9 @@ def plot_cv(sampling,db,st,a,op,lf,subpath=""):
                 for ere in ep_run_end:
                     content = False
                     for lp in range(len(loss_parameters)):                    
-                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],s,lr,eri,ere))
+                        enot = str("{:e}".format(lr))
+                        enot = enot.split("e")[0].rstrip('0').rstrip(".")+"e"+enot.split("e")[1]
+                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{}|epochs_run:{}_{}".format(loss_parameters[lp],s,enot,eri,ere))
                         
                         ##sub_folders
                         if os.path.exists(path+file_name+"/"):
@@ -242,7 +253,9 @@ def plot_cv(sampling,db,st,a,op,lf,subpath=""):
 
                     fig1, axs = plt.subplots(1, 2, figsize=(35, 10), facecolor='w', edgecolor='k')
                     for lp in range(len(loss_parameters)):                    
-                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],s,lr,eri,ere))
+                        enot = str("{:e}".format(lr))
+                        enot = enot.split("e")[0].rstrip('0').rstrip(".")+"e"+enot.split("e")[1]
+                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{}|epochs_run:{}_{}".format(loss_parameters[lp],s,enot,eri,ere))
                         #{'epoch': 0, 'loss': 0.07563, 'acc': 0.54412, 'acc2': 0.36527, 'time_epoch': 268.2493, 'time_total': 268.2493}    
                         try:
                             df_results0 = reading(path+file_name+"/tmp_cv_result.txt")
@@ -297,7 +310,9 @@ def plot_cv_2(sampling,db,st,a,op,lf,subpath=""):
             for eri in ep_run_init:
                 for ere in ep_run_end:
                     for lp in range(len(loss_parameters)): 
-                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],s,lr,eri,ere))
+                        enot = str("{:e}".format(lr))
+                        enot = enot.split("e")[0].rstrip('0').rstrip(".")+"e"+enot.split("e")[1]
+                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{}|epochs_run:{}_{}".format(loss_parameters[lp],s,enot,eri,ere))
 
                         ##sub_folders
                         if os.path.exists(path+file_name+"/"):
@@ -317,7 +332,9 @@ def plot_cv_2(sampling,db,st,a,op,lf,subpath=""):
                             continue
 
                         fig1, axs = plt.subplots(1, 2, figsize=(35, 10), facecolor='w', edgecolor='k')
-                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],s,lr,eri,ere))
+                        enot = str("{:e}".format(lr))
+                        enot = enot.split("e")[0].rstrip('0').rstrip(".")+"e"+enot.split("e")[1]
+                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{}|epochs_run:{}_{}".format(loss_parameters[lp],s,enot,eri,ere))
                         
                         df_results0 = []
                         for cv_i in range(10):                            
@@ -373,7 +390,9 @@ def plot_cv_3(sampling,db,st,a,op,lf,subpath=""):
             for eri in ep_run_init:
                 for ere in ep_run_end:
                     for lp in range(len(loss_parameters)): 
-                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],s,lr,eri,ere))
+                        enot = str("{:e}".format(lr))
+                        enot = enot.split("e")[0].rstrip('0').rstrip(".")+"e"+enot.split("e")[1]
+                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{}|epochs_run:{}_{}".format(loss_parameters[lp],s,enot,eri,ere))
 
                         ##sub_folders
                         if os.path.exists(path+file_name+"/"):
@@ -393,7 +412,9 @@ def plot_cv_3(sampling,db,st,a,op,lf,subpath=""):
                             continue
 
                         fig1, axs = plt.subplots(1, 2, figsize=(35, 10), facecolor='w', edgecolor='k')
-                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{:.0e}|epochs_run:{}_{}".format(loss_parameters[lp],s,lr,eri,ere))
+                        enot = str("{:e}".format(lr))
+                        enot = enot.split("e")[0].rstrip('0').rstrip(".")+"e"+enot.split("e")[1]
+                        file_name = str("loss_parameters:{}|batch_splits:{}|lr:{}|epochs_run:{}_{}".format(loss_parameters[lp],s,enot,eri,ere))
                         
                         df_results0 = []
                         for cv_i in range(10):                            

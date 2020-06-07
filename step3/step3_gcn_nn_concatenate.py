@@ -328,6 +328,30 @@ class Bert_300(nn.Module):
         z2 = F.normalize(z2, p=2, dim=1)
         
         return z1,z2
+
+class Bert2_400(nn.Module):
+    def __init__(self):
+        super(Bert2_400, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(1664, 832)
+        self.bn1 = nn.BatchNorm1d(num_features=768)
+        self.layer2 = GCNLayer_concatenate(1664, 832)
+        self.bn2 = nn.BatchNorm1d(num_features=832)
+        
+        #particular layers
+        self.layer3 = nn.Linear(832, 400)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
     
     
 class Bert_768(nn.Module):

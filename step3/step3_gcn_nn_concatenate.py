@@ -278,6 +278,34 @@ class Fasttext_150_150_100(nn.Module):
         
         return z1,z2
 
+class Fasttext2_200_200(nn.Module):
+    def __init__(self):
+        super(Fasttext2_200_200, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(728, 364)
+        self.bn1 = nn.BatchNorm1d(num_features=364)
+        self.layer2 = GCNLayer_concatenate(728, 364)
+        self.bn2 = nn.BatchNorm1d(num_features=364)
+        
+        #particular layers
+        self.layer3 = nn.Linear(364, 200)
+        self.bn3 = nn.BatchNorm1d(num_features=200)
+        self.layer4 = nn.Linear(200, 200)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.leaky_relu(self.layer4(z1))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.leaky_relu(self.layer4(z2))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
+
 # class Fasttext_180_60_6_2(nn.Module):
 #     def __init__(self):
 #         super(Fasttext_180_60_6_2, self).__init__()

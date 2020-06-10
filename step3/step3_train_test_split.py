@@ -100,7 +100,7 @@ def split_isolation(file_name,neg_sample):
 
 def split_cv_isolation(file_name,neg_sample):
     path = file_name+"/isolation/"+str(neg_sample)+"/cv"
-    for i in range(10):
+    for i in range(100):
         df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic","topic"]).to_numpy()
         df_matching = np.array([x for x in df_ds if x[2] == 1])
         np.random.shuffle(df_matching)

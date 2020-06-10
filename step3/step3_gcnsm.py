@@ -220,30 +220,40 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_di
         indices_tensor = th.tensor(indices)
         labels_tensor = th.tensor(mask[:,2])
     
-    if print_details:
-        positives = 0.0
-        negatives = 0.0
-        true_positives = 0.0
-        true_negatives = 0.0
-        false_positives = 0.0
-        false_negatives = 0.0
-        
-        for i in range(len(labels_tensor)):
-            prediction = indices_tensor[i].item()
-            label = labels_tensor[i].item()
-            if label == 0.0:
-                negatives+=1
-                if prediction == label:
-                    true_negatives+=1
-                else:
-                    false_positives+=1
+    positives = 0.0
+    negatives = 0.0
+    true_positives = 0.0
+    true_negatives = 0.0
+    false_positives = 0.0
+    false_negatives = 0.0
+    for i in range(len(labels_tensor)):
+        prediction = indices_tensor[i].item()
+        label = labels_tensor[i].item()
+        if label == 0.0 or label == -1.0:
+            negatives+=1
+            if prediction == label:
+                true_negatives+=1
             else:
-                positives+=1
-                if prediction == label:
-                    true_positives+=1
-                else:
-                    false_negatives+=1
+                false_positives+=1
+        else:
+            positives+=1
+            if prediction == label:
+                true_positives+=1
+            else:
+                false_negatives+=1
         
+    output = {}
+    output['true_positives'] = true_positives
+    output['false_positives'] = false_positives
+    output['true_negatives'] = true_negatives
+    output['false_negatives'] = false_negatives
+    output['recall'] = true_positives/positives
+    output['specificity'] = true_negatives/negatives
+    output['precision'] = true_positives / (true_positives + false_positives)
+    output['fscore'] = 2 * (output['precision'] * output['recall']) / ((output['precision'] + output['recall']))
+    output['acc'] = (true_positives + true_negatives) / len(labels_tensor)
+    
+    if print_details:
         #print confusion matrix            
         print("\t \t \t \t ##########Labels##########")
         print("\t \t \t \t Similar \t Not Similar")
@@ -251,13 +261,11 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_di
         print("Prediction Not Similar:  \t {} \t \t {}".format(false_negatives,true_negatives))
         print("\t \t \t \t----------------------")
         print("\t \t \t \t{} \t \t {}".format(positives,negatives))
-        print("\nRecall/Sensitivity: "+str(true_positives/positives))
-        print("Specificity/Selectivity: "+str(true_negatives/negatives))
-        print("Accuracy: "+str((true_positives + true_negatives) / len(labels_tensor)))
-        return (true_positives + true_negatives) / len(labels_tensor)
-    else:
-        correct = th.sum(indices_tensor == labels_tensor)
-        return correct.item() * 1.0 / len(labels_tensor)
+        print("\nRecall/Sensitivity: "+str(output['recall']))
+        print("Precision: "+str(output['precision']))
+        print("Fscore: "+str(output['fscore']))
+    
+    return output
 
 # Accuracy based on nearest neighboor (e.g. the nearest node should be a positive pair)
 def ne_ne_acc_isolation(model, g, features, mask,loss,print_details=False):
@@ -367,19 +375,13 @@ def evaluate(model, g, features, mask,loss):
     model.eval()
     with th.no_grad():
         #naive way of testing accuracy 
-        acc = threshold_acc(model, g, features, mask,loss)
+        th_output = threshold_acc(model, g, features, mask,loss)
         #accuracy based on 1-NN 
         if strategy == "isolation":
             acc2 = ne_ne_acc_isolation(model, g, features, mask,loss)
         if strategy == "random":
             acc2 = ne_ne_acc_random(model, g, features, mask,loss)
-        return acc,acc2
-
-
-# ### Train loop
-
-# In[ ]:
-
+        return th_output,acc2
 
 import time
 import numpy as np
@@ -391,11 +393,11 @@ def train(training,iterations):
     max_acc2 = 0.0
     if len(training.log) > 0:
         for l in training.log:
-            if l["acc"] > max_acc:
-                max_acc = l["acc"]
+            if l["fscore"] > max_acc:
+                max_acc = l["fscore"]
                 max_acc2 = l["acc2"]
             else:        
-                if l["acc"] == max_acc and l["acc2"] > max_acc2:
+                if l["fscore"] == max_acc and l["acc2"] > max_acc2:
                     max_acc2 = l["acc2"]
             
     not_improving = 0
@@ -432,32 +434,45 @@ def train(training,iterations):
         training.runtime_seconds+=t
         
         #accuracy
-        acc,acc2 = evaluate(training.net, g, g.ndata['vector'], test_mask,training.loss_name)
+        th_output,acc2 = evaluate(training.net, g, g.ndata['vector'], test_mask,training.loss_name)
         
         #create log
         output = {}
         output['epoch'] = training.epochs_run
-        output['loss'] = float('%.5f'% (epoch_loss))
-        output['acc'] = float('%.5f'% (acc))
-        output['acc2'] = float('%.5f'% (acc2))
+        output['loss'] = epoch_loss
+        output['acc'] = th_output['acc']
+        output['acc2'] = acc2
+#         output['loss'] = float('%.5f'% (epoch_loss))
+#         output['acc'] = float('%.5f'% (th_output['acc']))
+#         output['acc2'] = float('%.5f'% (acc2))
+        
+        output['true_positives'] = th_output['true_positives']
+        output['false_positives'] = th_output['false_positives']
+        output['true_negatives'] = th_output['true_negatives']
+        output['false_negatives'] = th_output['false_negatives']
+        output['recall'] = th_output['recall']
+        output['specificity'] = th_output['specificity']
+        output['precision'] = th_output['precision']
+        output['fscore'] = th_output['fscore']
+        
         output['time_epoch'] = float('%.5f'% (np.mean(dur)))
         output['time_total'] = float('%.5f'% (training.runtime_seconds))
         training.log.append(output)
         training.epochs_run+=1
-        print(str(output))
+        print(str("Ep: {}, loss: {:.5f}, acc: {:.5f}, acc2: {:.5f}, prec: {:.5f}, rec: {:.5f}, fs: {:.5f}, time: {:.5f}, timeT: {:.5f}").format(output['epoch'],output['loss'],output['acc'],output['acc2'],output['precision'],output['recall'],output['fscore'],output['time_epoch'],output['time_total']))
         
         ##save best model and results found so far
-        if acc > max_acc:
+        if output['fscore'] > max_acc:
             print("Best model found so far...")
             training.set_best(training)
-            max_acc = acc
+            max_acc = output['fscore']
             max_acc2 = acc2
             not_improving = 0
         else:        
-            if acc == max_acc and acc2 > max_acc2:
+            if output['fscore'] == max_acc and acc2 > max_acc2:
                 print("Best model found so far...")
                 training.set_best(training)
-                max_acc = acc
+                max_acc = output['fscore']
                 max_acc2 = acc2
                 not_improving = 0
             #if not improvments for 30 epochs in a row, then stop    
@@ -469,8 +484,7 @@ def train(training,iterations):
                     pad = iterations - epoch -1
                     training.epochs_run+=pad
                     break
-                    
-                 
+                                    
     #save final model state and final results if experiment is not a CV
     if cross_v < 0:
         training.save_state(path_setup)
@@ -480,13 +494,6 @@ def train(training,iterations):
 import copy
 import os
 from pathlib import Path
-
-
-# cv_logs = []
-# def cv_training(training,it):
-#     train(training,iterations=it)
-#     return training.log
-
 def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
     global cv_logs
     
@@ -498,8 +505,8 @@ def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
     cv_ran = ran.split("-")
     init = int(cv_ran[0]) -1
     ending = int(cv_ran[1])
-    if init < 0 or ending >10:
-        print("Out of range: CV is from 1 to 10")
+    if init < 0 or (ending >100 and strategy=="isolation") or (ending >10 and strategy=="random"):
+        raise Exception("Values for CV out of range")
     
     
     training_copy = None

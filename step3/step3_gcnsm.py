@@ -387,7 +387,7 @@ import time
 import numpy as np
 def train(training,iterations):
     dur = []
-    
+    print("Start of training...NN: "+training.net_name)
     #set max accuracy found if model already has state
     max_acc = 0.0
     max_acc2 = 0.0
@@ -401,9 +401,6 @@ def train(training,iterations):
                     max_acc2 = l["acc2"]
             
     not_improving = 0
-    ## create batchs for training
-    numb_splits = int(len(train_mask) / training.batch_splits) + 1
-    train_batch = np.array_split(train_mask,numb_splits)
     
     #specify number of threads for the training
     #th.set_num_threads(2)
@@ -413,6 +410,11 @@ def train(training,iterations):
         training.net.train()
         t0 = time.time()
         epoch_loss = 0
+        
+        ## create batchs and shuffle data for training
+        np.random.shuffle(train_mask)
+        numb_splits = int(len(train_mask) / training.batch_splits) + 1
+        train_batch = np.array_split(train_mask,numb_splits)
         
         #forward_backward positive batch sample
         for split in train_batch:

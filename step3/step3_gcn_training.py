@@ -61,8 +61,8 @@ class Training():
         if self.net != None:
             state['net'] = self.net.state_dict()
             state['net_name'] = self.net_name
-            state['batch_splits'] = self.batch_splits
-            state['lr'] = self.lr
+            state['batch_splits'] = self.log[-1]['batch_splits']
+            state['lr'] = self.log[-1]['lr']
             state['loss_name'] = self.loss_name
             state['loss_parameters'] = self.loss_parameters
             state['optimizer_name'] = self.optimizer_name

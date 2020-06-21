@@ -22,7 +22,7 @@ loss_parameters = ["0.9+mean","0.7+mean","0.5+mean","0.4+mean","0.3+mean","0.35+
 learning_rates = [1e-1,1e-2,1.2e-2,1.5e-2,1.6e-2,2e-2,2.4e-2,4e-2,5e-2,6e-2,8e-2,1e-3,2e-3,4e-3,5e-3,6e-3,8e-3,9e-3,5e-4,7e-4]
 splits = ["32","64","128","256","512","1024","2048","4096"]
 ep_run_init = ["00","30","50","60","100","125","150","175","200","250","300"]
-ep_run_end = ["02","50","60","70","80","100","125","150","175","200","250","300","400"]
+ep_run_end = ["02","50","60","70","80","100","125","150","175","200","250","300","301","302","303","400"]
 # ep_run_end = ["100","125","150","175","200","250","300","400"]
 
 #options
@@ -532,7 +532,7 @@ def plot_cv_details(sampling,db,st,a,op,lf,subpath=""):
                             for i in  range (len(df_results0)):
                                 logs = df_results0[i][1]
                                 run = df_results0[i][0]
-                                loss = (np.array([x["loss"] for x in logs])*1000).tolist()
+                                loss = (np.array([x["lr"] for x in logs])).tolist()
                                 acc = list(x["acc"] for x in logs)
                                 acc2 = list(x["acc2"] for x in logs)
                                 recall = list(x["recall"] for x in logs)
@@ -550,7 +550,7 @@ def plot_cv_details(sampling,db,st,a,op,lf,subpath=""):
     #                             axs[0].set_yticks(np.arange(0.5, 1.05, 0.05))
     #                             axs[0].yaxis.grid(True)
                                 axs[0].tick_params(labelsize=16)
-                                axs[0].set_title("Train Loss",fontsize=16)
+                                axs[0].set_title("Train LR",fontsize=16)
                                 axs[0].plot(range(0,len(loss)), loss, marker="o", c=colors[run],  linestyle='--', label=str("Run:{:.0f}".format(df_results0[i][0]+1)))
 
                                 axs[1].set_ylim([0.5,1.0])

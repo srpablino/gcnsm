@@ -1057,9 +1057,7 @@ def train5(training,iterations):
                 if l["fscore"] == max_acc and l["acc2"] > max_acc2:
                     max_acc2 = l["acc2"]
             
-    not_improving = 0
     need_update = 0
-    need_smaller_split = 0
     ##original values (take into account for saving the model)
     o_lr = training.lr
     o_splits = training.batch_splits
@@ -1128,7 +1126,7 @@ def train5(training,iterations):
         
         training.log.append(output)
         training.epochs_run+=1
-        print(str("Ep: {}, loss: {:.5f}, fs: {:.5f}, rec: {:.5f}, prec: {:.5f},  time: {:.5f}, timeT: {:.5f}").format(output['epoch'],output['loss'],output['fscore'],output['recall'],output['precision'],output['time_epoch'],output['time_total']))
+        print(str("Ep:{}, loss:{:.5f}, lr:{:.2e}, fs:{:.5f}, rec:{:.5f}, prec:{:.5f},  time:{:.5f}, tt:{:.5f}").format(output['epoch'],output['loss'],output['lr'],output['fscore'],output['recall'],output['precision'],output['time_epoch'],output['time_total']))
         
         ##save best model and results found so far
         if output['fscore'] > max_acc:
@@ -1136,27 +1134,18 @@ def train5(training,iterations):
             training.set_best(training)
             max_acc = output['fscore']
             max_acc2 = acc2
-            not_improving = 0
-            need_smaller_split = 0
+            need_update = 0
         else:
-            training.set_lr(training.lr * .99)
-            if not_improving < 100:
-                not_improving +=1
-            else:
-                print("Not improving anymore...finishing training.")
-                pad = iterations - epoch -1
-                training.epochs_run+=pad
-                break
-            
-            if need_smaller_split <49:
-                need_smaller_split +=1
-                if need_smaller_split <17:
-                    training.set_lr(training.lr * .85)
-                    
-            else:
-                training.batch_splits = max([training.batch_splits / 2, 32])
-                need_smaller_split = 0
-                print(">>>>>>>>>>>Updated Batch size to {}".format(training.batch_splits))
+            need_update += 1
+            if need_update > 10:
+                training.set_lr(training.lr * .99)          
+#             if need_update <60:
+#                 if need_update > 10:
+#                     training.set_lr(training.lr * .99)       
+#             else:
+#                 training.batch_splits = max([training.batch_splits / 2, 64])
+#                 need_update = 0
+#                 print(">>>>>>>>>>>Updated Batch size to {}".format(training.batch_splits))
                                     
     #Recover initial setup to save file
     training.lr = o_lr
@@ -1168,7 +1157,6 @@ def train5(training,iterations):
         if training.best != None:
             training.best.epochs_run = training.epochs_run
         training.save_state(path_setup)                
-        
 
 def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
     global cv_logs

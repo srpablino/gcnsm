@@ -50,6 +50,7 @@ import os
 from pathlib import Path
 def write_files(path,train,test):
     #write files
+    print(test)
     df_train = pd.DataFrame(data=train,columns=["dataset1_id","dataset2_id","matching_topic"]) 
     df_test = pd.DataFrame(data=test,columns=["dataset1_id","dataset2_id","matching_topic"]) 
     outdir = "./datasets/"+path
@@ -59,7 +60,27 @@ def write_files(path,train,test):
     df_test.to_csv(outdir+"/test.csv",index=False)
 
     
+def split_splitted(file_name,neg_sample):
+    
+    train = read_dataset("./datasets/"+file_name+"_train.csv",keep_columns=["id1", "id2","relation"]).to_numpy()
+    test = read_dataset("./datasets/"+file_name+"_test.csv",keep_columns=["id1", "id2","relation"]).to_numpy()
+    
+    #sampling neg/pos ratio + data augmentation
+    if neg_sample > 0:
+        train = sample_negative(train,neg_sample)
+    test = sample_negative(test,1)
+    train = data_augmentation(train)
+    
+    path = file_name+"/isolation/"+str(neg_sample)
+    write_files(path,train,test)
+    print("Train/Test split done")
+    return path
+        
+    
 def split_isolation(file_name,neg_sample):
+    if file_name == "monitor":
+        return split_splitted(file_name,neg_sample)
+    
     df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic","topic"]).to_numpy()
     df_matching = np.array([x for x in df_ds if x[2] == 1])
     np.random.shuffle(df_matching)
@@ -97,6 +118,7 @@ def split_isolation(file_name,neg_sample):
     write_files(path,train[:,:-1],test[:,:-1])
     print("Train/Test split done")
     return path
+
 
 def split_cv_isolation(file_name,neg_sample):
     path = file_name+"/isolation/"+str(neg_sample)+"/cv"

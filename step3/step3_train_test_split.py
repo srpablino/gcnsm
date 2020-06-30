@@ -27,6 +27,7 @@ def sample_negative(triple_list,n=2):
     t_pos = np.array([x for x in triple_list if x[2]==1])
     t_neg = np.array([x for x in triple_list if x[2]==0])
     n = min(n,int(len(t_neg)/len(t_pos)))
+    np.random.shuffle(t_neg)
     t_neg = t_neg[0:len(t_pos)*n]
     result = np.concatenate((t_pos,t_neg))
     np.random.shuffle(result)
@@ -50,7 +51,7 @@ import os
 from pathlib import Path
 def write_files(path,train,test):
     #write files
-    print(test)
+#     print(test)
     df_train = pd.DataFrame(data=train,columns=["dataset1_id","dataset2_id","matching_topic"]) 
     df_test = pd.DataFrame(data=test,columns=["dataset1_id","dataset2_id","matching_topic"]) 
     outdir = "./datasets/"+path

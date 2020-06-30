@@ -18,12 +18,16 @@ def reading(file_path):
 
 #parameters for iterations
 colors = ["red","green","blue","orange","black","pink","grey","skyblue","yellow","brown"]
-loss_parameters = ["0.9+mean","0.7+mean","0.5+mean","0.4+mean","0.3+mean","0.35+mean","0.1+mean"]
-learning_rates = [1e-1,1e-2,1.2e-2,1.5e-2,1.6e-2,2e-2,2.4e-2,4e-2,5e-2,6e-2,8e-2,1e-3,2e-3,4e-3,5e-3,6e-3,8e-3,9e-3,5e-4,7e-4]
-splits = ["32","64","128","256","512","1024","2048","4096"]
-ep_run_init = ["00","30","50","60","100","125","150","175","200","250","300"]
-ep_run_end = ["02","50","60","70","80","100","125","150","175","200","250","300","301","302","303","400"]
-# ep_run_end = ["100","125","150","175","200","250","300","400"]
+# loss_parameters = ["0.9+mean","0.7+mean","0.5+mean","0.4+mean","0.3+mean","0.35+mean","0.1+mean"]
+loss_parameters = ["0.7+mean","0.3+mean"]
+# learning_rates = [1e-1,1e-2,1.2e-2,1.5e-2,1.6e-2,2e-2,2.4e-2,4e-2,5e-2,6e-2,8e-2,1e-3,2e-3,4e-3,5e-3,6e-3,8e-3,9e-3,5e-4,7e-4]
+learning_rates = [6e-2]
+# splits = ["32","64","128","256","512","1024","2048","4096","4810","8192","16384","4810","9620","19240"]
+splits = ["1024","2048","4096","4810","8192","16384","4810","9620","19240"]
+ep_run_init = ["00"]
+ep_run_end = ["150","300"]
+# ep_run_init = ["00","30","50","60","100","125","150","175","200","250","300"]
+# ep_run_end = ["02","50","60","70","80","100","125","150","175","200","250","300","301","302","303","400"]
 
 #options
 db_name = ["openml_203ds_datasets_matching"]
@@ -141,7 +145,7 @@ def plot_details(sampling,db,st,a,op,lf,subpath=""):
                         
                         ##sub_folders
                         if os.path.exists(path+file_name+"/"):
-                            plot_by_loss_parameters(sampling,db,st,a,op,lf,file_name+"/")
+                            plot_details(sampling,db,st,a,op,lf,file_name+"/")
                         
                         try:
                             df_results0 = reading(path+file_name+".txt")
@@ -532,7 +536,7 @@ def plot_cv_details(sampling,db,st,a,op,lf,subpath=""):
                             for i in  range (len(df_results0)):
                                 logs = df_results0[i][1]
                                 run = df_results0[i][0]
-                                loss = (np.array([x["lr"] for x in logs])).tolist()
+                                loss = (np.array([x["loss"] for x in logs])*1000).tolist()
                                 acc = list(x["acc"] for x in logs)
                                 acc2 = list(x["acc2"] for x in logs)
                                 recall = list(x["recall"] for x in logs)
@@ -550,14 +554,14 @@ def plot_cv_details(sampling,db,st,a,op,lf,subpath=""):
     #                             axs[0].set_yticks(np.arange(0.5, 1.05, 0.05))
     #                             axs[0].yaxis.grid(True)
                                 axs[0].tick_params(labelsize=16)
-                                axs[0].set_title("Train LR",fontsize=16)
                                 axs[0].plot(range(0,len(loss)), loss, marker="o", c=colors[run],  linestyle='--', label=str("Run:{:.0f}".format(df_results0[i][0]+1)))
 
-                                axs[1].set_ylim([0.5,1.0])
-                                axs[1].set_yticks(np.arange(0.5, 1.05, 0.05))
+#                                 axs[1].set_ylim([0.5,1.0])
+#                                 axs[1].set_yticks(np.arange(0.5, 1.05, 0.05))
+                                axs[1].set_ylim([0.0,1.0])
+                                axs[1].set_yticks(np.arange(0.0, 1.05, 0.05))
                                 axs[1].yaxis.grid(True)
                                 axs[1].tick_params(labelsize=16)
-                                axs[1].set_title("Test F-score",fontsize=16)
                                 axs[1].plot(range(0,len(fscore)), fscore, marker="o", c=colors[run],  linestyle='--', label=str("Run:{:.0f}, Max Fscore: {:.5f}, with Recall: {:.5f} and Precision: {:.5f}".format(df_results0[i][0]+1,max_fscore[0],max_fscore[1],max_fscore[2])))
                         except:
                             continue
@@ -569,6 +573,6 @@ def plot_cv_details(sampling,db,st,a,op,lf,subpath=""):
                         axs[1].legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=1, shadow=True, fancybox=True,fontsize=16)
                         axs[0].set_title("Train Loss (x1000)",fontsize=16)
                         axs[1].set_title(str("Test Fscore AVG: {:.5f} - Var: {:.5f} - SD: {:.5f}".format(max_fscore_avg,var_max_fscore,std_max_fscore)),fontsize=16)
-                        fig1.suptitle("{}-{}_Cross_validation".format(a,file_name),fontsize=18)
+                        fig1.suptitle("{}-{}_Cross_validation".format(a,lf+"_"+file_name),fontsize=18)
                         fig1.savefig(path+file_name+"/tmp_cv_results.png",pad_inches = 0)
                         

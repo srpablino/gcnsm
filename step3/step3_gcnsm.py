@@ -52,7 +52,7 @@ def load_env(ds_name=None,ns=None,st=None,sp=None,we=None,cv=-1):
         parameter_error("create_new_split",create_new_split)
     else:
         create_new_split = sp
-    if we == None or not str(we) or we not in ["BERT","BERT2","FASTTEXT","FASTTEXT2","FASTTEXT_SIMPLE"]:
+    if we == None or not str(we) or we not in ["BERT","BERT2","FASTTEXT","FASTTEXT2","FASTTEXT2_2","FASTTEXT2_NAMES","FASTTEXT2_SHORT","FASTTEXT_SIMPLE","FASTTEXT_SIMPLE_NAMES","FASTTEXT_SIMPLE_SHORT","MONITOR_SIMPLE","MONITOR_SIMPLE_SHORT"]:
         parameter_error("word_embedding_encoding",word_embedding_encoding)
     else:
         word_embedding_encoding = we
@@ -104,19 +104,41 @@ map_reverse_ds_order = None
 def load_graph():
     global map_ds
     global map_reverse_ds_order
+    global train_mask
+    global test_mask
     
     if word_embedding_encoding == "FASTTEXT":
         g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext.gpickle")
-    if word_embedding_encoding == "FASTTEXT2":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_v2.gpickle")    
     if word_embedding_encoding == "FASTTEXT_SIMPLE":
         g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_simple.gpickle")    
+    if word_embedding_encoding == "FASTTEXT_SIMPLE_NAMES":
+        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_simple_names.gpickle")    
+    if word_embedding_encoding == "FASTTEXT_SIMPLE_SHORT":
+        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_simple_short.gpickle")    
+        
+    if word_embedding_encoding == "FASTTEXT2":
+        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_v2.gpickle")    
+    if word_embedding_encoding == "FASTTEXT2_2":
+        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext2.gpickle")        
+    if word_embedding_encoding == "FASTTEXT2_NAMES":
+        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext2_names.gpickle")    
+    if word_embedding_encoding == "FASTTEXT2_SHORT":
+        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext2_short.gpickle")    
+    
+    if word_embedding_encoding == "MONITOR_SIMPLE":
+        g_x = nx.read_gpickle("./word_embeddings/monitor_fasttext_simple.gpickle")   
+        
+    if word_embedding_encoding == "MONITOR_SIMPLE_SHORT":
+        g_x = nx.read_gpickle("./word_embeddings/monitor_fasttext_simple_short.gpickle")   
+        
     if word_embedding_encoding == "BERT":
         g_x = nx.read_gpickle("./word_embeddings/encoded_bert.gpickle")
-    if word_embedding_encoding == "BERT2":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_bert_v2.gpickle")    
     if word_embedding_encoding == "BERT_SIMPLE":
         g_x = nx.read_gpickle("./word_embeddings/encoded_bert_simple.gpickle")    
+        
+    if word_embedding_encoding == "BERT2":
+        g_x = nx.read_gpickle("./word_embeddings/encoded_bert_v2.gpickle")    
+    
 
     ds_order = 0
     for x,n in sorted(g_x.nodes(data=True)):
@@ -136,20 +158,26 @@ def load_graph():
         n['ds_order']=ds_order
         ds_order+=1
 
-    datasets = [x for (x,y) in g_x.nodes(data=True) if y['tipo']==0]
+    datasets = [x.strip() for (x,y) in g_x.nodes(data=True) if y['tipo']==0]
     ds_order = [y['ds_order'] for x,y in g_x.nodes(data=True) if y['tipo']==0]
     map_ds = dict(zip(datasets,ds_order))
     map_reverse_ds_order = dict(zip(ds_order,datasets))
-    map_ds['DS_1']
 
     for mask in train_mask:
-        mask[0] = map_ds["DS_"+str(mask[0])]
-        mask[1] = map_ds["DS_"+str(mask[1])]
+        mask[0] = map_ds["DS_"+str(mask[0]).strip().replace('\xa0','')]
+        mask[1] = map_ds["DS_"+str(mask[1]).strip().replace('\xa0','')]            
         if mask[2] == 0:
             mask[2] = -1
+            
     for mask in test_mask:
-        mask[0] = map_ds["DS_"+str(mask[0])]
-        mask[1] = map_ds["DS_"+str(mask[1])]
+        mask[0] = map_ds["DS_"+str(mask[0]).strip().replace('\xa0','')]
+        mask[1] = map_ds["DS_"+str(mask[1]).strip().replace('\xa0','')]
+        if mask[2] == 0:
+            mask[2] = -1
+        
+    
+    train_mask = train_mask.astype(np.float) 
+    test_mask = test_mask.astype(np.float) 
     
     return g_x
 
@@ -190,7 +218,7 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_di
             if r.item() <= threshold_dist:
                 indices.append(1.0)
             else:
-                indices.append(0.0)          
+                indices.append(-1.0)          
         indices_tensor = th.tensor(indices)
         labels_tensor = th.tensor(mask[:,2])
         
@@ -203,7 +231,7 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_di
             if r.item() >= threshold_cos:
                 indices.append(1.0)
             else:
-                indices.append(0.0)
+                indices.append(-1.0)
         indices_tensor = th.tensor(indices)
         labels_tensor = th.tensor(mask[:,2])
     
@@ -216,7 +244,7 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_di
     for i in range(len(labels_tensor)):
         prediction = indices_tensor[i].item()
         label = labels_tensor[i].item()
-        if label == 0.0 or label == -1.0:
+        if label == -1.0:
             negatives+=1
             if prediction == label:
                 true_negatives+=1
@@ -354,6 +382,9 @@ def ne_ne_acc_random(model, g, features, mask,loss,print_details=False):
 
 def confusion_matrix(model, g, features, mask,loss,threshold):
     model.eval()
+    for m in mask:
+        if m[2]==0:
+            m[2]=-1
     with th.no_grad():
         acc = threshold_acc(model, g, features, mask,loss,print_details=True,threshold_dist=threshold,threshold_cos=threshold)
         return acc
@@ -366,25 +397,34 @@ def confusion_matrix_cv(model, g, features, path,loss,threshold):
     for mask in tmp_test:
         mask[0] = map_ds["DS_"+str(mask[0])]
         mask[1] = map_ds["DS_"+str(mask[1])]
+        if mask[2]==0:
+            mask[2]=-1
         
     with th.no_grad():
         acc = threshold_acc(model, g, features, tmp_test,loss,print_details=True,threshold_dist=threshold,threshold_cos=threshold)
         return acc    
         
-def evaluate(model, g, features, mask,loss):
-    model.eval()
+def evaluate(training, g, features, mask,loss):
+    training.net.eval()
     with th.no_grad():
         #naive way of testing accuracy 
-        th_output = threshold_acc(model, g, features, mask,loss)
+        th_output = threshold_acc(training.net, g, features, mask,loss)
+        
+        #calculate test_loss        
+        z1,z2 = training.net(g, g.ndata['vector'],mask[:,0],mask[:,1])
+        loss_test = training.loss(z1,z2, th.tensor(mask[:,2]))
+        
         #accuracy based on 1-NN 
-        if strategy == "isolation":
-            acc2 = ne_ne_acc_isolation(model, g, features, mask,loss)
-        if strategy == "random":
-            acc2 = ne_ne_acc_random(model, g, features, mask,loss)
-        return th_output,acc2
+#         if strategy == "isolation":
+#             acc2 = ne_ne_acc_isolation(training.net, g, features, mask,loss)
+#         if strategy == "random":
+#             acc2 = ne_ne_acc_random(training.net, g, features, mask,loss)
+
+
+        return th_output,0,loss_test.item()
 
 import time
-import numpy as np
+import numpy as np        
 def train(training,iterations):
     dur = []
     print("Start of training...NN: "+training.net_name)
@@ -400,663 +440,6 @@ def train(training,iterations):
                 if l["fscore"] == max_acc and l["acc2"] > max_acc2:
                     max_acc2 = l["acc2"]
             
-    not_improving = 0
-    
-    #specify number of threads for the training
-    #th.set_num_threads(2)
-    
-    for epoch in range(iterations):
-        #model train mode
-        training.net.train()
-        t0 = time.time()
-        epoch_loss = 0
-        
-        ## create batchs and shuffle data for training
-        np.random.shuffle(train_mask)
-        numb_splits = int(len(train_mask) / training.batch_splits) + 1
-        train_batch = np.array_split(train_mask,numb_splits)
-        
-        #forward_backward positive batch sample
-        for split in train_batch:
-            z1,z2 = training.net(g, g.ndata['vector'],split[:,0],split[:,1])
-            loss = training.loss(z1,z2, th.tensor(split[:,2]))
-            training.optimizer.zero_grad()
-            #loss.backward(retain_graph=True)
-            loss.backward()
-            training.optimizer.step()
-            epoch_loss += loss.item()
-        
-        epoch_loss = epoch_loss / training.batch_splits
-
-        #runtime
-        t = time.time() - t0
-        dur.append(t)
-        
-        #total time accumulation for this model
-        training.runtime_seconds+=t
-        
-        #accuracy
-        th_output,acc2 = evaluate(training.net, g, g.ndata['vector'], test_mask,training.loss_name)
-        
-        #create log
-        output = {}
-        output['epoch'] = training.epochs_run
-        output['loss'] = epoch_loss
-        output['acc'] = th_output['acc']
-        output['acc2'] = acc2
-#         output['loss'] = float('%.5f'% (epoch_loss))
-#         output['acc'] = float('%.5f'% (th_output['acc']))
-#         output['acc2'] = float('%.5f'% (acc2))
-        
-        output['true_positives'] = th_output['true_positives']
-        output['false_positives'] = th_output['false_positives']
-        output['true_negatives'] = th_output['true_negatives']
-        output['false_negatives'] = th_output['false_negatives']
-        output['recall'] = th_output['recall']
-        output['specificity'] = th_output['specificity']
-        output['precision'] = th_output['precision']
-        output['fscore'] = th_output['fscore']
-        
-        #updated parameters
-        output['lr'] = training.lr
-        output['batch_splits'] = training.batch_splits
-        
-        output['time_epoch'] = float('%.5f'% (np.mean(dur)))
-        output['time_total'] = float('%.5f'% (training.runtime_seconds))
-        training.log.append(output)
-        training.epochs_run+=1
-        print(str("Ep: {}, loss: {:.5f}, acc: {:.5f}, acc2: {:.5f}, prec: {:.5f}, rec: {:.5f}, fs: {:.5f}, time: {:.5f}, timeT: {:.5f}").format(output['epoch'],output['loss'],output['acc'],output['acc2'],output['precision'],output['recall'],output['fscore'],output['time_epoch'],output['time_total']))
-        
-        ##save best model and results found so far
-        if output['fscore'] > max_acc:
-            print("Best model found so far...")
-            training.set_best(training)
-            max_acc = output['fscore']
-            max_acc2 = acc2
-            not_improving = 0
-        else:        
-            if output['fscore'] == max_acc and acc2 > max_acc2:
-                print("Best model found so far...")
-                training.set_best(training)
-                max_acc = output['fscore']
-                max_acc2 = acc2
-                not_improving = 0
-            #if not improvments for 30 epochs in a row, then stop    
-            else:
-                if not_improving < 100:
-                    not_improving +=1
-                else:
-                    print("Not improving anymore...finishing training.")
-                    pad = iterations - epoch -1
-                    training.epochs_run+=pad
-                    break
-                                    
-    #save final model state and final results if experiment is not a CV
-    if cross_v < 0:
-        if training.best != None:
-            training.best.epochs_run = training.epochs_run
-        training.save_state(path_setup)
-        
-        
-def train2_deprecated(training,iterations):
-    dur = []
-    print("Start of training...NN: "+training.net_name)
-    #set max accuracy found if model already has state
-    max_acc = 0.0
-    max_acc2 = 0.0
-    if len(training.log) > 0:
-        for l in training.log:
-            if l["fscore"] > max_acc:
-                max_acc = l["fscore"]
-                max_acc2 = l["acc2"]
-            else:        
-                if l["fscore"] == max_acc and l["acc2"] > max_acc2:
-                    max_acc2 = l["acc2"]
-            
-    not_improving = 0
-    need_update = 0
-    need_smaller_split = 0
-    ##original values (take into account for saving the model)
-    o_lr = training.lr
-    o_splits = training.batch_splits
-    
-    #specify number of threads for the training
-    #th.set_num_threads(2)
-    
-    for epoch in range(iterations):
-        #model train mode
-        training.net.train()
-        t0 = time.time()
-        epoch_loss = 0
-        
-        ## create batchs and shuffle data for training
-        np.random.shuffle(train_mask)
-        numb_splits = int(len(train_mask) / training.batch_splits) + 1
-        train_batch = np.array_split(train_mask,numb_splits)
-        
-        #forward_backward positive batch sample
-        for split in train_batch:
-            z1,z2 = training.net(g, g.ndata['vector'],split[:,0],split[:,1])
-            loss = training.loss(z1,z2, th.tensor(split[:,2]))
-            training.optimizer.zero_grad()
-            #loss.backward(retain_graph=True)
-            loss.backward()
-            training.optimizer.step()
-            epoch_loss += loss.item()
-        
-        epoch_loss = epoch_loss / training.batch_splits
-
-        #runtime
-        t = time.time() - t0
-        dur.append(t)
-        
-        #total time accumulation for this model
-        training.runtime_seconds+=t
-        
-        #accuracy
-        th_output,acc2 = evaluate(training.net, g, g.ndata['vector'], test_mask,training.loss_name)
-        
-        #create log
-        output = {}
-        output['epoch'] = training.epochs_run
-        output['loss'] = epoch_loss
-        output['acc'] = th_output['acc']
-        output['acc2'] = acc2
-#         output['loss'] = float('%.5f'% (epoch_loss))
-#         output['acc'] = float('%.5f'% (th_output['acc']))
-#         output['acc2'] = float('%.5f'% (acc2))
-        
-        output['true_positives'] = th_output['true_positives']
-        output['false_positives'] = th_output['false_positives']
-        output['true_negatives'] = th_output['true_negatives']
-        output['false_negatives'] = th_output['false_negatives']
-        output['recall'] = th_output['recall']
-        output['specificity'] = th_output['specificity']
-        output['precision'] = th_output['precision']
-        output['fscore'] = th_output['fscore']
-        
-        output['time_epoch'] = float('%.5f'% (np.mean(dur)))
-        output['time_total'] = float('%.5f'% (training.runtime_seconds))
-        
-        #updated parameters
-        output['lr'] = training.lr
-        output['batch_splits'] = training.batch_splits
-        
-        training.log.append(output)
-        training.epochs_run+=1
-        print(str("Ep: {}, loss: {:.5f}, fs: {:.5f}, rec: {:.5f}, prec: {:.5f},  time: {:.5f}, timeT: {:.5f}").format(output['epoch'],output['loss'],output['fscore'],output['recall'],output['precision'],output['time_epoch'],output['time_total']))
-        
-        ##save best model and results found so far
-        if output['fscore'] > max_acc:
-            print("##########Best model found so far##########")
-            training.set_best(training)
-            max_acc = output['fscore']
-            max_acc2 = acc2
-            not_improving = 0
-            need_update = 0
-            need_smaller_split = 0
-        else:
-            if need_update < 14:
-                need_update += 1
-            else:
-                eex = str("{:e}".format(training.lr)).split("e")[1]
-                decrease = "2e"+eex
-                if float(str("{:e}".format(training.lr)).split("e")[0]) < 2.0:
-                    d = float(decrease) / 10.0
-                else:
-                    d = float(decrease)
-                new_lr = max([abs(training.lr - d),training.lr / 2.0])
-                print(">>>>>>>>>>>{:.1e} decreased(-or/) by: {:.1e} gives {:.1e}".format(training.lr,d,new_lr))
-                training.net = training.best.net
-                training.optimizer = training.best.optimizer
-                training.set_lr(max([new_lr,1e-3]))
-                need_update = 0
-    
-            if need_smaller_split <44:
-                need_smaller_split +=1
-            else:
-                training.net = training.best.net
-                training.optimizer = training.best.optimizer
-                training.batch_splits = max([training.batch_splits / 2, 32])
-                need_smaller_split = 25
-                print(">>>>>>>>>>>Updated batch size to: "+str(training.batch_splits))
-            
-            if not_improving < 135:
-                not_improving +=1
-            else:
-                print("Not improving anymore...finishing training.")
-                pad = iterations - epoch -1
-                training.epochs_run+=pad
-                break
-                                    
-    #Recover initial setup to save file
-    training.lr = o_lr
-    training.batch_splits = o_splits
-    training.best.lr = o_lr 
-    training.best.batch_splits = o_splits
-    #save final model state and final results if experiment is not a CV
-    if cross_v < 0:
-        if training.best != None:
-            training.best.epochs_run = training.epochs_run
-        training.save_state(path_setup)
-        
-
-def train2(training,iterations):
-    dur = []
-    print("Start of training...NN: "+training.net_name)
-    #set max accuracy found if model already has state
-    max_acc = 0.0
-    max_acc2 = 0.0
-    if len(training.log) > 0:
-        for l in training.log:
-            if l["fscore"] > max_acc:
-                max_acc = l["fscore"]
-                max_acc2 = l["acc2"]
-            else:        
-                if l["fscore"] == max_acc and l["acc2"] > max_acc2:
-                    max_acc2 = l["acc2"]
-            
-    not_improving = 0
-    need_update = 0
-    need_smaller_split = 0
-    ##original values (take into account for saving the model)
-    o_lr = training.lr
-    o_splits = training.batch_splits
-    
-    #specify number of threads for the training
-    #th.set_num_threads(2)
-    
-    for epoch in range(iterations):
-        #model train mode
-        training.net.train()
-        t0 = time.time()
-        epoch_loss = 0
-        
-        ## create batchs and shuffle data for training
-        np.random.shuffle(train_mask)
-        numb_splits = int(len(train_mask) / training.batch_splits) + 1
-        train_batch = np.array_split(train_mask,numb_splits)
-        
-        #forward_backward positive batch sample
-        for split in train_batch:
-            z1,z2 = training.net(g, g.ndata['vector'],split[:,0],split[:,1])
-            loss = training.loss(z1,z2, th.tensor(split[:,2]))
-            training.optimizer.zero_grad()
-            #loss.backward(retain_graph=True)
-            loss.backward()
-            training.optimizer.step()
-            epoch_loss += loss.item()
-        
-        epoch_loss = epoch_loss / training.batch_splits
-
-        #runtime
-        t = time.time() - t0
-        dur.append(t)
-        
-        #total time accumulation for this model
-        training.runtime_seconds+=t
-        
-        #accuracy
-        th_output,acc2 = evaluate(training.net, g, g.ndata['vector'], test_mask,training.loss_name)
-        
-        #create log
-        output = {}
-        output['epoch'] = training.epochs_run
-        output['loss'] = epoch_loss
-        output['acc'] = th_output['acc']
-        output['acc2'] = acc2
-#         output['loss'] = float('%.5f'% (epoch_loss))
-#         output['acc'] = float('%.5f'% (th_output['acc']))
-#         output['acc2'] = float('%.5f'% (acc2))
-        
-        output['true_positives'] = th_output['true_positives']
-        output['false_positives'] = th_output['false_positives']
-        output['true_negatives'] = th_output['true_negatives']
-        output['false_negatives'] = th_output['false_negatives']
-        output['recall'] = th_output['recall']
-        output['specificity'] = th_output['specificity']
-        output['precision'] = th_output['precision']
-        output['fscore'] = th_output['fscore']
-        
-        output['time_epoch'] = float('%.5f'% (np.mean(dur)))
-        output['time_total'] = float('%.5f'% (training.runtime_seconds))
-        
-        #updated parameters
-        output['lr'] = training.lr
-        output['batch_splits'] = training.batch_splits
-        
-        training.log.append(output)
-        training.epochs_run+=1
-        print(str("Ep: {}, loss: {:.5f}, fs: {:.5f}, rec: {:.5f}, prec: {:.5f},  time: {:.5f}, timeT: {:.5f}").format(output['epoch'],output['loss'],output['fscore'],output['recall'],output['precision'],output['time_epoch'],output['time_total']))
-        
-        ##save best model and results found so far
-        if output['fscore'] > max_acc:
-            print("##########Best model found so far##########")
-            training.set_best(training)
-            max_acc = output['fscore']
-            max_acc2 = acc2
-            not_improving = 0
-            need_update = 0
-            need_smaller_split = 0
-        else:
-            
-            if not_improving < 100:
-                not_improving +=1
-            else:
-                print("Not improving anymore...finishing training.")
-                pad = iterations - epoch -1
-                training.epochs_run+=pad
-                break
-            
-            if need_smaller_split <39:
-                need_smaller_split +=1
-                if need_update < 19:
-                    need_update += 1
-                else:
-                    eex = str("{:e}".format(training.lr)).split("e")[1]
-                    decrease = "2e"+eex
-                    if float(str("{:e}".format(training.lr)).split("e")[0]) < 2.0:
-                        d = float(decrease) / 10.0
-                    else:
-                        d = float(decrease)
-                    new_lr = max([abs(training.lr - d),training.lr / 2.0])
-#                     training.net = training.best.net
-#                     training.optimizer = training.best.optimizer
-#                     training.set_best(training.best)
-                    training.set_lr(max([new_lr,1e-3]))
-                    need_update = 0
-                    print(">>>>>>>>>>>Updated LR to {:.1e}. Batch size is  {}".format(training.lr,training.batch_splits))
-            else:
-#                 training.net = training.best.net
-#                 training.optimizer = training.best.optimizer
-#                 training.set_best(training.best)
-                training.batch_splits = max([training.batch_splits / 2, 32])
-                need_smaller_split = 0
-                need_update = 0
-                print(">>>>>>>>>>>Updated Batch size to {}. LR is  {:.1e}".format(training.batch_splits,training.lr))
-                                    
-    #Recover initial setup to save file
-    training.lr = o_lr
-    training.batch_splits = o_splits
-    training.best.lr = o_lr 
-    training.best.batch_splits = o_splits
-    #save final model state and final results if experiment is not a CV
-    if cross_v < 0:
-        if training.best != None:
-            training.best.epochs_run = training.epochs_run
-        training.save_state(path_setup)                
-
-def train3(training,iterations):
-    dur = []
-    print("Start of training...NN: "+training.net_name)
-    #set max accuracy found if model already has state
-    max_acc = 0.0
-    max_acc2 = 0.0
-    if len(training.log) > 0:
-        for l in training.log:
-            if l["fscore"] > max_acc:
-                max_acc = l["fscore"]
-                max_acc2 = l["acc2"]
-            else:        
-                if l["fscore"] == max_acc and l["acc2"] > max_acc2:
-                    max_acc2 = l["acc2"]
-            
-    not_improving = 0
-    need_update = 0
-    need_smaller_split = 0
-    ##original values (take into account for saving the model)
-    o_lr = training.lr
-    o_splits = training.batch_splits
-    
-    #specify number of threads for the training
-    #th.set_num_threads(2)
-    
-    for epoch in range(iterations):
-        #model train mode
-        training.net.train()
-        t0 = time.time()
-        epoch_loss = 0
-        
-        ## create batchs and shuffle data for training
-        np.random.shuffle(train_mask)
-        numb_splits = int(len(train_mask) / training.batch_splits) + 1
-        train_batch = np.array_split(train_mask,numb_splits)
-        
-        #forward_backward positive batch sample
-        for split in train_batch:
-            z1,z2 = training.net(g, g.ndata['vector'],split[:,0],split[:,1])
-            loss = training.loss(z1,z2, th.tensor(split[:,2]))
-            training.optimizer.zero_grad()
-            #loss.backward(retain_graph=True)
-            loss.backward()
-            training.optimizer.step()
-            epoch_loss += loss.item()
-        
-        epoch_loss = epoch_loss / training.batch_splits
-
-        #runtime
-        t = time.time() - t0
-        dur.append(t)
-        
-        #total time accumulation for this model
-        training.runtime_seconds+=t
-        
-        #accuracy
-        th_output,acc2 = evaluate(training.net, g, g.ndata['vector'], test_mask,training.loss_name)
-        
-        #create log
-        output = {}
-        output['epoch'] = training.epochs_run
-        output['loss'] = epoch_loss
-        output['acc'] = th_output['acc']
-        output['acc2'] = acc2
-#         output['loss'] = float('%.5f'% (epoch_loss))
-#         output['acc'] = float('%.5f'% (th_output['acc']))
-#         output['acc2'] = float('%.5f'% (acc2))
-        
-        output['true_positives'] = th_output['true_positives']
-        output['false_positives'] = th_output['false_positives']
-        output['true_negatives'] = th_output['true_negatives']
-        output['false_negatives'] = th_output['false_negatives']
-        output['recall'] = th_output['recall']
-        output['specificity'] = th_output['specificity']
-        output['precision'] = th_output['precision']
-        output['fscore'] = th_output['fscore']
-        
-        output['time_epoch'] = float('%.5f'% (np.mean(dur)))
-        output['time_total'] = float('%.5f'% (training.runtime_seconds))
-        
-        #updated parameters
-        output['lr'] = training.lr
-        output['batch_splits'] = training.batch_splits
-        
-        training.log.append(output)
-        training.epochs_run+=1
-        print(str("Ep: {}, loss: {:.5f}, fs: {:.5f}, rec: {:.5f}, prec: {:.5f},  time: {:.5f}, timeT: {:.5f}").format(output['epoch'],output['loss'],output['fscore'],output['recall'],output['precision'],output['time_epoch'],output['time_total']))
-        
-        ##save best model and results found so far
-        if output['fscore'] > max_acc:
-            print("##########Best model found so far##########")
-            training.set_best(training)
-            max_acc = output['fscore']
-            max_acc2 = acc2
-            not_improving = 0
-            need_update = 0
-            need_smaller_split = 0
-        else:
-            
-            if not_improving < 100:
-                not_improving +=1
-            else:
-                print("Not improving anymore...finishing training.")
-                pad = iterations - epoch -1
-                training.epochs_run+=pad
-                break
-            
-            
-            if need_update < 19:
-                need_update += 1
-            else:
-                eex = str("{:e}".format(training.lr)).split("e")[1]
-                decrease = "2e"+eex
-                if float(str("{:e}".format(training.lr)).split("e")[0]) < 2.0:
-                    d = float(decrease) / 10.0
-                else:
-                    d = float(decrease)
-                new_lr = max([abs(training.lr - d),training.lr / 2.0])
-#                 training.net = training.best.net
-#                 training.optimizer = training.best.optimizer
-#                 training.set_best(training.best)
-                training.set_lr(max([new_lr,1e-3]))
-                need_update = 0
-                print(">>>>>>>>>>>Updated LR to {:.1e}. Batch size is  {}".format(training.lr,training.batch_splits))
-                                    
-    #Recover initial setup to save file
-    training.lr = o_lr
-    training.batch_splits = o_splits
-    training.best.lr = o_lr 
-    training.best.batch_splits = o_splits
-    #save final model state and final results if experiment is not a CV
-    if cross_v < 0:
-        if training.best != None:
-            training.best.epochs_run = training.epochs_run
-        training.save_state(path_setup)        
-        
-        
-
-def train4(training,iterations):
-    dur = []
-    print("Start of training...NN: "+training.net_name)
-    #set max accuracy found if model already has state
-    max_acc = 0.0
-    max_acc2 = 0.0
-    if len(training.log) > 0:
-        for l in training.log:
-            if l["fscore"] > max_acc:
-                max_acc = l["fscore"]
-                max_acc2 = l["acc2"]
-            else:        
-                if l["fscore"] == max_acc and l["acc2"] > max_acc2:
-                    max_acc2 = l["acc2"]
-            
-    not_improving = 0
-    need_update = 0
-    need_smaller_split = 0
-    ##original values (take into account for saving the model)
-    o_lr = training.lr
-    o_splits = training.batch_splits
-    
-    #specify number of threads for the training
-    #th.set_num_threads(2)
-    
-    for epoch in range(iterations):
-        #model train mode
-        training.net.train()
-        t0 = time.time()
-        epoch_loss = 0
-        
-        ## create batchs and shuffle data for training
-        np.random.shuffle(train_mask)
-        numb_splits = int(len(train_mask) / training.batch_splits) + 1
-        train_batch = np.array_split(train_mask,numb_splits)
-        
-        #forward_backward positive batch sample
-        for split in train_batch:
-            z1,z2 = training.net(g, g.ndata['vector'],split[:,0],split[:,1])
-            loss = training.loss(z1,z2, th.tensor(split[:,2]))
-            training.optimizer.zero_grad()
-            #loss.backward(retain_graph=True)
-            loss.backward()
-            training.optimizer.step()
-            epoch_loss += loss.item()
-        
-        epoch_loss = epoch_loss / training.batch_splits
-
-        #runtime
-        t = time.time() - t0
-        dur.append(t)
-        
-        #total time accumulation for this model
-        training.runtime_seconds+=t
-        
-        #accuracy
-        th_output,acc2 = evaluate(training.net, g, g.ndata['vector'], test_mask,training.loss_name)
-        
-        #create log
-        output = {}
-        output['epoch'] = training.epochs_run
-        output['loss'] = epoch_loss
-        output['acc'] = th_output['acc']
-        output['acc2'] = acc2
-#         output['loss'] = float('%.5f'% (epoch_loss))
-#         output['acc'] = float('%.5f'% (th_output['acc']))
-#         output['acc2'] = float('%.5f'% (acc2))
-        
-        output['true_positives'] = th_output['true_positives']
-        output['false_positives'] = th_output['false_positives']
-        output['true_negatives'] = th_output['true_negatives']
-        output['false_negatives'] = th_output['false_negatives']
-        output['recall'] = th_output['recall']
-        output['specificity'] = th_output['specificity']
-        output['precision'] = th_output['precision']
-        output['fscore'] = th_output['fscore']
-        
-        output['time_epoch'] = float('%.5f'% (np.mean(dur)))
-        output['time_total'] = float('%.5f'% (training.runtime_seconds))
-        
-        #updated parameters
-        output['lr'] = training.lr
-        output['batch_splits'] = training.batch_splits
-        
-        training.log.append(output)
-        training.epochs_run+=1
-        print(str("Ep: {}, loss: {:.5f}, fs: {:.5f}, rec: {:.5f}, prec: {:.5f},  time: {:.5f}, timeT: {:.5f}").format(output['epoch'],output['loss'],output['fscore'],output['recall'],output['precision'],output['time_epoch'],output['time_total']))
-        
-        ##save best model and results found so far
-        if output['fscore'] > max_acc:
-            print("##########Best model found so far##########")
-            training.set_best(training)
-            max_acc = output['fscore']
-            max_acc2 = acc2
-            not_improving = 0
-#             training.set_lr(training.lr * .99)
-        else:
-            training.set_lr(training.lr * .99)
-            if not_improving < 100:
-                not_improving +=1
-            else:
-                print("Not improving anymore...finishing training.")
-                pad = iterations - epoch -1
-                training.epochs_run+=pad
-                break
-                                    
-    #Recover initial setup to save file
-    training.lr = o_lr
-    training.batch_splits = o_splits
-    training.best.lr = o_lr 
-    training.best.batch_splits = o_splits
-    #save final model state and final results if experiment is not a CV
-    if cross_v < 0:
-        if training.best != None:
-            training.best.epochs_run = training.epochs_run
-        training.save_state(path_setup)                
-        
-        
-def train5(training,iterations):
-    dur = []
-    print("Start of training...NN: "+training.net_name)
-    #set max accuracy found if model already has state
-    max_acc = 0.0
-    max_acc2 = 0.0
-    if len(training.log) > 0:
-        for l in training.log:
-            if l["fscore"] > max_acc:
-                max_acc = l["fscore"]
-                max_acc2 = l["acc2"]
-            else:        
-                if l["fscore"] == max_acc and l["acc2"] > max_acc2:
-                    max_acc2 = l["acc2"]
-            
     need_update = 0
     ##original values (take into account for saving the model)
     o_lr = training.lr
@@ -1080,6 +463,7 @@ def train5(training,iterations):
         for split in train_batch:
             z1,z2 = training.net(g, g.ndata['vector'],split[:,0],split[:,1])
             loss = training.loss(z1,z2, th.tensor(split[:,2]))
+            
             training.optimizer.zero_grad()
             #loss.backward(retain_graph=True)
             loss.backward()
@@ -1096,17 +480,15 @@ def train5(training,iterations):
         training.runtime_seconds+=t
         
         #accuracy
-        th_output,acc2 = evaluate(training.net, g, g.ndata['vector'], test_mask,training.loss_name)
+        th_output,acc2,loss_test = evaluate(training, g, g.ndata['vector'], test_mask,training.loss_name)
         
         #create log
         output = {}
         output['epoch'] = training.epochs_run
         output['loss'] = epoch_loss
+        output['loss_test'] = loss_test
         output['acc'] = th_output['acc']
         output['acc2'] = acc2
-#         output['loss'] = float('%.5f'% (epoch_loss))
-#         output['acc'] = float('%.5f'% (th_output['acc']))
-#         output['acc2'] = float('%.5f'% (acc2))
         
         output['true_positives'] = th_output['true_positives']
         output['false_positives'] = th_output['false_positives']
@@ -1126,7 +508,7 @@ def train5(training,iterations):
         
         training.log.append(output)
         training.epochs_run+=1
-        print(str("Ep:{}, loss:{:.5f}, lr:{:.2e}, fs:{:.5f}, rec:{:.5f}, prec:{:.5f},  time:{:.5f}, tt:{:.5f}").format(output['epoch'],output['loss'],output['lr'],output['fscore'],output['recall'],output['precision'],output['time_epoch'],output['time_total']))
+        print(str("Ep:{}, loss:{:.5f}, loss_test:{:.5f}, lr:{:.2e}, fs:{:.5f} (r={:.3f},p={:.3f}),  time:{:.3f}, tt:{:.3f}").format(output['epoch'],output['loss'],output['loss_test'],output['lr'],output['fscore'],output['recall'],output['precision'],output['time_epoch'],output['time_total']))
         
         ##save best model and results found so far
         if output['fscore'] > max_acc:
@@ -1137,27 +519,29 @@ def train5(training,iterations):
             need_update = 0
         else:
             need_update += 1
-            if need_update > 10:
-                training.set_lr(training.lr * .99)          
-#             if need_update <60:
-#                 if need_update > 10:
-#                     training.set_lr(training.lr * .99)       
-#             else:
+            if need_update <60:
+                if need_update > 10:
+                    training.set_lr(training.lr * .99)       
+            else:
+                training.set_lr(training.lr*0.5)
 #                 training.batch_splits = max([training.batch_splits / 2, 64])
-#                 need_update = 0
+                need_update = 0
+                print(">>>>>>>>>>>Updated LR to {}".format(training.lr))
 #                 print(">>>>>>>>>>>Updated Batch size to {}".format(training.batch_splits))
                                     
     #Recover initial setup to save file
     training.lr = o_lr
     training.batch_splits = o_splits
-    training.best.lr = o_lr 
-    training.best.batch_splits = o_splits
+    if training.best != None:
+        training.best.lr = o_lr 
+        training.best.batch_splits = o_splits
+    
     #save final model state and final results if experiment is not a CV
     if cross_v < 0:
         if training.best != None:
             training.best.epochs_run = training.epochs_run
-        training.save_state(path_setup)                
-
+        training.save_state(path_setup)                        
+        
 def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
     global cv_logs
     
@@ -1177,7 +561,7 @@ def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
     for i in range(init,ending):
         load_env(ds_name=dataset_name,ns=nsample,st=strategy,sp=create,we=word_embedding_encoding,cv=i)
         training_copy = copy.deepcopy(training)
-        train5(training_copy,iterations)
+        train(training_copy,iterations)
         path_setup = dataset_name+"/"+strategy+"/"+str(neg_sample)+"/cv"
         if training_copy.best != None:
             training_copy.best.epochs_run = training_copy.epochs_run

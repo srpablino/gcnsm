@@ -21,11 +21,12 @@ colors = ["red","green","blue","orange","black","pink","grey","skyblue","yellow"
 # loss_parameters = ["0.9+mean","0.7+mean","0.5+mean","0.4+mean","0.3+mean","0.35+mean","0.1+mean"]
 loss_parameters = ["0.7+mean","0.3+mean"]
 # learning_rates = [1e-1,1e-2,1.2e-2,1.5e-2,1.6e-2,2e-2,2.4e-2,4e-2,5e-2,6e-2,8e-2,1e-3,2e-3,4e-3,5e-3,6e-3,8e-3,9e-3,5e-4,7e-4]
-learning_rates = [6e-2]
+learning_rates = [1e-2,6e-2]
 # splits = ["32","64","128","256","512","1024","2048","4096","4810","8192","16384","4810","9620","19240"]
-splits = ["1024","2048","4096","4810","8192","16384","4810","9620","19240"]
+# splits = ["1024","2048","4096","4810","8192","16384","4810","9620","19240","40000","9000"]
+splits = ["1024"]
 ep_run_init = ["00"]
-ep_run_end = ["150","300"]
+ep_run_end = ["213","214","215"]
 # ep_run_init = ["00","30","50","60","100","125","150","175","200","250","300"]
 # ep_run_end = ["02","50","60","70","80","100","125","150","175","200","250","300","301","302","303","400"]
 
@@ -481,7 +482,7 @@ def plot_cv(sampling,db,st,a,op,lf,subpath=""):
                         fig1.savefig(path+file_name+"/tmp_cv_results.png",pad_inches = 0)
 
                         
-def plot_cv_details(sampling,db,st,a,op,lf,subpath=""):
+def plot_cv_details(sampling,db,st,a,op,lf,subpath="",nit=None):
     ##options selection
 #     sampling = 2
 #     db = db_name[0]
@@ -489,12 +490,16 @@ def plot_cv_details(sampling,db,st,a,op,lf,subpath=""):
 #     a = archi[0]
 #     op = optimizer[0]
 #     lf = loss_functions[0]
+    if nit==None:
+        epochs=ep_run_end
+    else:
+        epochs=nit
     path = str("./results/{}/{}/{}/cv/net_name:{}/optimizer_name:{}/loss_name:{}/".format(db,st,sampling,a,op,lf))
     path += subpath
     for s in splits:
         for lr in learning_rates:
             for eri in ep_run_init:
-                for ere in ep_run_end:
+                for ere in epochs:
                     for lp in range(len(loss_parameters)): 
                         enot = str("{:e}".format(lr))
                         enot = enot.split("e")[0].rstrip('0').rstrip(".")+"e"+enot.split("e")[1]

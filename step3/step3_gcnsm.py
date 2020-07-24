@@ -38,9 +38,9 @@ def load_env(ds_name=None,ns=None,st=None,sp=None,we=None,cv=-1):
         parameter_error("dataset_name",dataset_name)
     else:
         dataset_name = ds_name
-        
-    if ns == None or not int(ns) or ns < 0: 
-        parameter_error("neg_sample",neg_sample)
+    
+    if ns == None or ns < 0: 
+        parameter_error("neg_sample: "+str(ns),neg_sample)
     else:
         neg_sample = ns
         
@@ -52,7 +52,7 @@ def load_env(ds_name=None,ns=None,st=None,sp=None,we=None,cv=-1):
         parameter_error("create_new_split",create_new_split)
     else:
         create_new_split = sp
-    if we == None or not str(we) or we not in ["BERT","BERT2","FASTTEXT","FASTTEXT2","FASTTEXT2_2","FASTTEXT2_NAMES","FASTTEXT2_SHORT","FASTTEXT_SIMPLE","FASTTEXT_SIMPLE_NAMES","FASTTEXT_SIMPLE_SHORT","MONITOR_SIMPLE","MONITOR_SIMPLE_SHORT"]:
+    if we == None or not str(we) or we not in ["BERT","BERT2","FASTTEXT","FASTTEXT2","FASTTEXT2_2","FASTTEXT2_NAMES","FASTTEXT2_SHORT","FASTTEXT_SIMPLE_CLEAN","FASTTEXT2_CLEAN","FASTTEXT2_CLEAN5","FASTTEXT2_CLEAN4","FASTTEXT2_CLEAN3","FASTTEXT2_CLEAN2","FASTTEXT2_NEW","FASTTEXT_SIMPLE","FASTTEXT_SIMPLE_NAMES","FASTTEXT_SIMPLE_SHORT","MONITOR_SIMPLE","MONITOR_SIMPLE_SHORT"]:
         parameter_error("word_embedding_encoding",word_embedding_encoding)
     else:
         word_embedding_encoding = we
@@ -114,7 +114,9 @@ def load_graph():
     if word_embedding_encoding == "FASTTEXT_SIMPLE_NAMES":
         g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_simple_names.gpickle")    
     if word_embedding_encoding == "FASTTEXT_SIMPLE_SHORT":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_simple_short.gpickle")    
+        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_simple_short.gpickle")  
+    if word_embedding_encoding == "FASTTEXT_SIMPLE_CLEAN":
+        g_x = nx.read_gpickle("./word_embeddings/clean_fasttext_simple_short.gpickle")        
         
     if word_embedding_encoding == "FASTTEXT2":
         g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_v2.gpickle")    
@@ -124,6 +126,20 @@ def load_graph():
         g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext2_names.gpickle")    
     if word_embedding_encoding == "FASTTEXT2_SHORT":
         g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext2_short.gpickle")    
+    
+    if word_embedding_encoding == "FASTTEXT2_NEW":
+        g_x = nx.read_gpickle("./word_embeddings/new_fasttext_short.gpickle")    
+    
+    if word_embedding_encoding == "FASTTEXT2_CLEAN":
+        g_x = nx.read_gpickle("./word_embeddings/clean_fasttext_short.gpickle")    
+    if word_embedding_encoding == "FASTTEXT2_CLEAN2":
+        g_x = nx.read_gpickle("./word_embeddings/clean2_fasttext_short.gpickle")    
+    if word_embedding_encoding == "FASTTEXT2_CLEAN3":
+        g_x = nx.read_gpickle("./word_embeddings/clean3_fasttext_short.gpickle")    
+    if word_embedding_encoding == "FASTTEXT2_CLEAN4":
+        g_x = nx.read_gpickle("./word_embeddings/clean4_fasttext_short.gpickle")    
+    if word_embedding_encoding == "FASTTEXT2_CLEAN5":
+        g_x = nx.read_gpickle("./word_embeddings/clean5_fasttext_short.gpickle")    
     
     if word_embedding_encoding == "MONITOR_SIMPLE":
         g_x = nx.read_gpickle("./word_embeddings/monitor_fasttext_simple.gpickle")   
@@ -137,7 +153,7 @@ def load_graph():
         g_x = nx.read_gpickle("./word_embeddings/encoded_bert_simple.gpickle")    
         
     if word_embedding_encoding == "BERT2":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_bert_v2.gpickle")    
+        g_x = nx.read_gpickle("./word_embeddings/new_bert_short.gpickle")    
     
 
     ds_order = 0
@@ -264,8 +280,13 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_di
     output['false_negatives'] = false_negatives
     output['recall'] = true_positives/positives
     output['specificity'] = true_negatives/negatives
-    output['precision'] = true_positives / (true_positives + false_positives)
-    output['fscore'] = 2 * (output['precision'] * output['recall']) / ((output['precision'] + output['recall']))
+    output['precision'] = 0
+    output['fscore'] = 0
+    try:
+        output['precision'] = true_positives / (true_positives + false_positives)
+        output['fscore'] = 2 * (output['precision'] * output['recall']) / ((output['precision'] + output['recall']))
+    except:
+        print("precision and fscore not calculated")
     output['acc'] = (true_positives + true_negatives) / len(labels_tensor)
     
     if print_details:
@@ -425,9 +446,24 @@ def evaluate(training, g, features, mask,loss):
 
 import time
 import numpy as np        
+
+def shuffle_splits(train_mask, n):
+    train_pos = [x for x in train_mask if x[2]==1]
+    train_neg = [x for x in train_mask if x[2]==-1]
+    np.random.shuffle(train_pos)
+    np.random.shuffle(train_neg)
+    pos_batch = np.array_split(train_pos,n)
+    neg_batch = np.array_split(train_neg,n)
+    result = []
+    for i in range(n):
+        result.append(np.concatenate((pos_batch[i],neg_batch[i])))
+        np.random.shuffle(result[i])
+    return np.array(result)
+    
+
 def train(training,iterations):
     dur = []
-    print("Start of training...NN: "+training.net_name)
+    print(str("Start of training...NN {} Loss {} Split {}: ").format(training.net_name,training.loss_name,training.batch_splits))
     #set max accuracy found if model already has state
     max_acc = 0.0
     max_acc2 = 0.0
@@ -447,7 +483,7 @@ def train(training,iterations):
     
     #specify number of threads for the training
     #th.set_num_threads(2)
-    
+
     for epoch in range(iterations):
         #model train mode
         training.net.train()
@@ -455,9 +491,11 @@ def train(training,iterations):
         epoch_loss = 0
         
         ## create batchs and shuffle data for training
-        np.random.shuffle(train_mask)
         numb_splits = int(len(train_mask) / training.batch_splits) + 1
-        train_batch = np.array_split(train_mask,numb_splits)
+        train_batch = shuffle_splits(train_mask,numb_splits)
+#         np.random.shuffle(train_mask)
+#         numb_splits = int(len(train_mask) / training.batch_splits) + 1
+#         train_batch = np.array_split(train_mask,numb_splits)
         
         #forward_backward positive batch sample
         for split in train_batch:
@@ -519,15 +557,8 @@ def train(training,iterations):
             need_update = 0
         else:
             need_update += 1
-            if need_update <60:
-                if need_update > 10:
-                    training.set_lr(training.lr * .99)       
-            else:
-                training.set_lr(training.lr*0.5)
-#                 training.batch_splits = max([training.batch_splits / 2, 64])
-                need_update = 0
-                print(">>>>>>>>>>>Updated LR to {}".format(training.lr))
-#                 print(">>>>>>>>>>>Updated Batch size to {}".format(training.batch_splits))
+            if need_update >10:
+                training.set_lr(training.lr * .99)       
                                     
     #Recover initial setup to save file
     training.lr = o_lr

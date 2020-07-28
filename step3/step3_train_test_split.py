@@ -180,7 +180,7 @@ def split_cv_isolation(file_name,neg_sample):
             if len(topic_pos_pairs) == 0:
                 continue
             topic_pos_ds = np.unique(np.concatenate((topic_pos_pairs[:,0],topic_pos_pairs[:,1])))
-            if len(topic_pos_ds) > 5:
+            if len(topic_pos_ds) > 4:
                 np.random.shuffle(topic_pos_ds)
                 topic_pos_test.append(topic_pos_ds[0])
 

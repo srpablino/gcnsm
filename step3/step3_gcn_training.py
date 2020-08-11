@@ -42,7 +42,7 @@ class Training():
         if self.optimizer_name == "adam":
             self.optimizer = th.optim.Adam(self.net.parameters(),self.lr,weight_decay=0.001)
         if self.optimizer_name == "sgd":
-            self.optimizer = th.optim.SGD(self.net.parameters(), lr=self.lr, momentum=0.9, weight_decay=0.001)
+            self.optimizer = th.optim.SGD(self.net.parameters(), lr=self.lr, momentum=0.9, weight_decay=0)
             
     def set_best(self,best):
         best_copy = copy.deepcopy(best)

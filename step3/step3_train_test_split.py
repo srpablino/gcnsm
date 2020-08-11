@@ -121,9 +121,53 @@ def split_isolation(file_name,neg_sample):
     return path
 
 
+def split_cv_isolation_old(file_name,neg_sample):
+    path = file_name+"/isolation/"+str(neg_sample)+"/cv"
+    for i in range(10):
+        df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic","topic"]).to_numpy()
+        df_matching = np.array([x for x in df_ds if x[2] == 1])
+        np.random.shuffle(df_matching)
+
+        #For each topic with possitive pairs, separate the 20% of node_ids in test
+        topics = np.unique(df_ds[:,3])
+        topic_pos_test = []
+        topic_pos_train = []
+        for t in topics:
+            topic_pos_pairs = np.array([x for x in df_matching if x[3] == t])
+            if len(topic_pos_pairs) == 0:
+                continue
+            topic_pos_ds = np.unique(np.concatenate((topic_pos_pairs[:,0],topic_pos_pairs[:,1])))
+            if len(topic_pos_ds) > 5:
+                np.random.shuffle(topic_pos_ds)
+                topic_pos_test.append(topic_pos_ds[0])
+                for j in range(1,len(topic_pos_ds)):
+                    topic_pos_train.append(topic_pos_ds[j])
+
+        #load pairs having the previous separated node-ids in test, the rest in train  
+        test = []
+        train = []
+        for pair in df_ds:
+            if pair[0] in topic_pos_test or pair[1] in topic_pos_test:
+                test.append(pair)
+            else:
+                if pair[0] in topic_pos_train or pair[1] in topic_pos_train:
+                    train.append(pair)
+        test = np.array(test)
+        train = np.array(train)
+
+        #sampling neg/pos ratio + data augmentation
+        if neg_sample > 0:
+            train = sample_negative(train,neg_sample)
+        test = sample_negative(test,1)
+        train = data_augmentation(train)
+
+        write_files(path+"/"+str(i),train[:,:-1],test[:,:-1])
+    print("Train/Test split done")
+    return path
+
 def split_cv_isolation(file_name,neg_sample):
     path = file_name+"/isolation/"+str(neg_sample)+"/cv"
-    for i in range(100):
+    for i in range(10):
         df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic","topic"]).to_numpy()
         df_matching = np.array([x for x in df_ds if x[2] == 1])
         np.random.shuffle(df_matching)
@@ -160,6 +204,7 @@ def split_cv_isolation(file_name,neg_sample):
         write_files(path+"/"+str(i),train[:,:-1],test[:,:-1])
     print("Train/Test split done")
     return path
+
 
 def split_cv_random(file_name,neg_sample):
     df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic"]).to_numpy();

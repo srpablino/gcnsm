@@ -90,23 +90,27 @@ class Fasttext_3GCN(nn.Module):
         return z1,z2
     
     
-class Fasttext_simple_300(nn.Module):
+class Fasttext_simple_300_300(nn.Module):
     def __init__(self):
-        super(Fasttext_simple_300, self).__init__()
+        super(Fasttext_simple_300_300, self).__init__()
         
         self.layer1 = GCNLayer_concatenate(600, 300)
         self.bn1 = nn.BatchNorm1d(num_features=300)
         
         #particular layers
+        self.layer2 = nn.Linear(300, 300)
+        self.bn2 = nn.BatchNorm1d(num_features=300)
         self.layer3 = nn.Linear(300, 300)
         
     def forward(self, g,features,v1,v2):
         gcn = F.leaky_relu(self.layer1(g,features))
         
-        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.leaky_relu(self.layer2(gcn[v1]))
+        z1 = F.leaky_relu(self.layer3(z1))
         z1 = F.normalize(z1, p=2, dim=1)
         
-        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.leaky_relu(self.layer2(gcn[v2]))
+        z2 = F.leaky_relu(self.layer3(z2))
         z2 = F.normalize(z2, p=2, dim=1)
         
         return z1,z2
@@ -297,6 +301,31 @@ class FasttextSum_150(nn.Module):
         z2 = F.normalize(z2, p=2, dim=1)
         
         return z1,z2
+    
+class FasttextSum_364(nn.Module):
+    def __init__(self):
+        super(FasttextSum_364, self).__init__()
+        
+        self.layer1 = GCNLayer_sum(364, 364)
+        self.bn1 = nn.BatchNorm1d(num_features=364)        
+
+        self.layer2 = GCNLayer_sum(364, 364)
+        self.bn2 = nn.BatchNorm1d(num_features=364)
+        
+        #particular layers
+        self.layer3 = nn.Linear(364, 364)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2    
 
     
 
@@ -420,6 +449,269 @@ class Fasttext2_364(nn.Module):
         
         return z1,z2
 
+class Fasttext2_728_364(nn.Module):
+    def __init__(self):
+        super(Fasttext2_728_364, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(728, 364)
+        self.bn1 = nn.BatchNorm1d(num_features=364)
+        self.layer2 = GCNLayer_concatenate(728, 728)
+        self.bn2 = nn.BatchNorm1d(num_features=728)
+        
+        #particular layers
+        self.layer3 = nn.Linear(728, 728)
+        self.bn3 = nn.BatchNorm1d(num_features=728)
+        self.layer4 = nn.Linear(728, 364)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.leaky_relu(self.layer4(z1))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.leaky_relu(self.layer4(z2))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
+
+class Fasttext_600_300(nn.Module):
+    def __init__(self):
+        super(Fasttext_600_300, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(600, 300)
+        self.bn1 = nn.BatchNorm1d(num_features=300)
+        self.layer2 = GCNLayer_concatenate(600, 600)
+        self.bn2 = nn.BatchNorm1d(num_features=600)
+        
+        #particular layers
+        self.layer3 = nn.Linear(600, 600)
+        self.bn3 = nn.BatchNorm1d(num_features=600)
+        self.layer4 = nn.Linear(600, 300)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.leaky_relu(self.layer4(z1))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.leaky_relu(self.layer4(z2))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
+    
+    
+class Fasttext2d_728_364(nn.Module):
+    def __init__(self):
+        super(Fasttext2d_728_364, self).__init__()
+        self.dp1 = nn.Dropout(p=0.2)
+        self.layer1 = GCNLayer_concatenate(728, 364)
+        self.dp2 = nn.Dropout()
+        self.bn1 = nn.BatchNorm1d(num_features=364)
+        self.layer2 = GCNLayer_concatenate(728, 728)
+        self.dp3 = nn.Dropout()
+        self.bn2 = nn.BatchNorm1d(num_features=728)
+        
+        #particular layers
+        self.layer3 = nn.Linear(728, 728)
+        self.dp4 = nn.Dropout()
+        self.bn3 = nn.BatchNorm1d(num_features=728)
+        self.layer4 = nn.Linear(728, 364)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.leaky_relu(self.layer4(z1))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.leaky_relu(self.layer4(z2))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
+
+    
+class Fasttext2_364_nn(nn.Module):
+    def __init__(self):
+        super(Fasttext2_364_nn, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(728, 364)
+        self.bn1 = nn.BatchNorm1d(num_features=364)
+        self.layer2 = GCNLayer_concatenate(728, 364)
+        self.bn2 = nn.BatchNorm1d(num_features=364)
+        
+        #particular layers
+        self.layer3 = nn.Linear(364, 364)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        
+        return z1,z2
+    
+    
+class Fasttext2_728(nn.Module):
+    def __init__(self):
+        super(Fasttext2_728, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(728, 364)
+        self.bn1 = nn.BatchNorm1d(num_features=364)
+        self.layer2 = GCNLayer_concatenate(728, 728)
+        self.bn2 = nn.BatchNorm1d(num_features=728)
+        
+        #particular layers
+        self.layer3 = nn.Linear(728, 728)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
+    
+class Fasttext2_728364(nn.Module):
+    def __init__(self):
+        super(Fasttext2_728364, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(728, 364)
+        self.bn1 = nn.BatchNorm1d(num_features=364)
+        self.layer2 = GCNLayer_concatenate(728, 728)
+        self.bn2 = nn.BatchNorm1d(num_features=728)
+        
+        #particular layers
+        self.layer3 = nn.Linear(728, 364)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
+    
+    
+class Fasttext2_364_364_364(nn.Module):
+    def __init__(self):
+        super(Fasttext2_364_364_364, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(728, 364)
+        self.bn1 = nn.BatchNorm1d(num_features=364)
+        self.layer2 = GCNLayer_concatenate(728, 364)
+        self.bn2 = nn.BatchNorm1d(num_features=364)
+        
+        #particular layers
+        self.layer3 = nn.Linear(364, 364)
+        self.bn3 = nn.BatchNorm1d(num_features=364)
+        self.layer4 = nn.Linear(364, 364)
+        self.bn4 = nn.BatchNorm1d(num_features=364)
+        self.layer5 = nn.Linear(364, 364)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.leaky_relu(self.layer4(z1))
+        z1 = F.leaky_relu(self.layer5(z1))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.leaky_relu(self.layer4(z2))
+        z2 = F.leaky_relu(self.layer5(z2))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
+
+class Fasttext_300_300_300(nn.Module):
+    def __init__(self):
+        super(Fasttext_300_300_300, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(600, 300)
+        self.bn1 = nn.BatchNorm1d(num_features=300)
+        self.layer2 = GCNLayer_concatenate(600, 300)
+        self.bn2 = nn.BatchNorm1d(num_features=300)
+        
+        #particular layers
+        self.layer3 = nn.Linear(300, 300)
+        self.bn3 = nn.BatchNorm1d(num_features=300)
+        self.layer4 = nn.Linear(300, 300)
+        self.bn4 = nn.BatchNorm1d(num_features=300)
+        self.layer5 = nn.Linear(300, 300)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.leaky_relu(self.layer4(z1))
+        z1 = F.leaky_relu(self.layer5(z1))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.leaky_relu(self.layer4(z2))
+        z2 = F.leaky_relu(self.layer5(z2))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2    
+    
+class Fasttext2d_364_364_364(nn.Module):
+    def __init__(self):
+        super(Fasttext2d_364_364_364, self).__init__()
+        self.dp1 = nn.Dropout(p=0.2)
+        self.layer1 = GCNLayer_concatenate(728, 364)
+        self.dp2 = nn.Dropout(p=0.5)
+        self.bn1 = nn.BatchNorm1d(num_features=364)
+        self.layer2 = GCNLayer_concatenate(728, 364)
+        self.dp3 = nn.Dropout(p=0.5)
+        self.bn2 = nn.BatchNorm1d(num_features=364)
+        
+        #particular layers
+        self.layer3 = nn.Linear(364, 364)
+        self.dp4 = nn.Dropout(p=0.5)
+        self.bn3 = nn.BatchNorm1d(num_features=364)
+        self.layer4 = nn.Linear(364, 364)
+        self.dp5 = nn.Dropout(p=0.5)
+        self.bn4 = nn.BatchNorm1d(num_features=364)
+        self.layer5 = nn.Linear(364, 364)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.leaky_relu(self.layer4(z1))
+        z1 = F.leaky_relu(self.layer5(z1))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.leaky_relu(self.layer4(z2))
+        z2 = F.leaky_relu(self.layer5(z2))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
+
+    
+    
 class Fasttext2d_364(nn.Module):
     def __init__(self):
         super(Fasttext2d_364, self).__init__()
@@ -673,6 +965,48 @@ class Fasttext2_300_250_200_150(nn.Module):
         
         return z1,z2    
 
+class Fasttext2d_300_250_200_150(nn.Module):
+    def __init__(self):
+        super(Fasttext2d_300_250_200_150, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(728, 364)
+        self.bn1 = nn.BatchNorm1d(num_features=364)
+        self.dp1 = nn.Dropout()
+        self.layer2 = GCNLayer_concatenate(728, 364)
+        self.bn2 = nn.BatchNorm1d(num_features=364)
+        self.dp2 = nn.Dropout()
+        
+        #particular layers
+        self.layer3 = nn.Linear(364, 300)
+        self.bn3 = nn.BatchNorm1d(num_features=300)
+        self.dp3 = nn.Dropout()
+        self.layer4 = nn.Linear(300, 250)
+        self.bn4 = nn.BatchNorm1d(num_features=250)
+        self.dp4 = nn.Dropout()
+        self.layer5 = nn.Linear(250, 200)
+        self.bn5 = nn.BatchNorm1d(num_features=200)
+        self.dp5 = nn.Dropout()
+        self.layer6 = nn.Linear(200, 150)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.leaky_relu(self.layer4(z1))
+        z1 = F.leaky_relu(self.layer5(z1))
+        z1 = F.leaky_relu(self.layer6(z1))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.leaky_relu(self.layer4(z2))
+        z2 = F.leaky_relu(self.layer5(z2))
+        z2 = F.leaky_relu(self.layer6(z2))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2    
+    
+    
 class FasttextSum_300_250_200_150(nn.Module):
     def __init__(self):
         super(FasttextSum_300_250_200_150, self).__init__()
@@ -689,6 +1023,47 @@ class FasttextSum_300_250_200_150(nn.Module):
         self.bn4 = nn.BatchNorm1d(num_features=250)
         self.layer5 = nn.Linear(250, 200)
         self.bn5 = nn.BatchNorm1d(num_features=200)
+        self.layer6 = nn.Linear(200, 150)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.leaky_relu(self.layer4(z1))
+        z1 = F.leaky_relu(self.layer5(z1))
+        z1 = F.leaky_relu(self.layer6(z1))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.leaky_relu(self.layer4(z2))
+        z2 = F.leaky_relu(self.layer5(z2))
+        z2 = F.leaky_relu(self.layer6(z2))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2    
+
+class FasttextSumd_300_250_200_150(nn.Module):
+    def __init__(self):
+        super(FasttextSumd_300_250_200_150, self).__init__()
+        
+        self.layer1 = GCNLayer_sum(364, 364)
+        self.bn1 = nn.BatchNorm1d(num_features=364)
+        self.dp1 = nn.Dropout()
+        self.layer2 = GCNLayer_sum(364, 364)
+        self.bn2 = nn.BatchNorm1d(num_features=364)
+        self.dp2 = nn.Dropout()
+        
+        #particular layers
+        self.layer3 = nn.Linear(364, 300)
+        self.bn3 = nn.BatchNorm1d(num_features=300)
+        self.dp3 = nn.Dropout()
+        self.layer4 = nn.Linear(300, 250)
+        self.bn4 = nn.BatchNorm1d(num_features=250)
+        self.dp4 = nn.Dropout()
+        self.layer5 = nn.Linear(250, 200)
+        self.bn5 = nn.BatchNorm1d(num_features=200)
+        self.dp5 = nn.Dropout()
         self.layer6 = nn.Linear(200, 150)
         
     def forward(self, g,features,v1,v2):
@@ -1142,6 +1517,31 @@ class Bert_768(nn.Module):
         
         return z1,z2
 
+class Bert2_832(nn.Module):
+    def __init__(self):
+        super(Bert2_832, self).__init__()
+        
+        self.layer1 = GCNLayer_concatenate(1664, 832)
+        self.bn1 = nn.BatchNorm1d(num_features=832)
+        self.layer2 = GCNLayer_concatenate(1664, 832)
+        self.bn2 = nn.BatchNorm1d(num_features=832)
+        
+        #particular layers
+        self.layer3 = nn.Linear(832, 832)
+        
+    def forward(self, g,features,v1,v2):
+        gcn = F.leaky_relu(self.layer1(g,features))
+        gcn = F.leaky_relu(self.layer2(g, gcn))
+        
+        z1 = F.leaky_relu(self.layer3(gcn[v1]))
+        z1 = F.normalize(z1, p=2, dim=1)
+        
+        z2 = F.leaky_relu(self.layer3(gcn[v2]))
+        z2 = F.normalize(z2, p=2, dim=1)
+        
+        return z1,z2
+    
+    
 class Bert_300_300_200(nn.Module):
     def __init__(self):
         super(Bert_300_300_200, self).__init__()

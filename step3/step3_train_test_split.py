@@ -22,7 +22,7 @@ def concat_shuffle(a1,a2):
     np.random.shuffle(out)
     return out
 
-def sample_negative(triple_list,n=2):
+def sample_negative_random(triple_list,n=1):
     np.random.shuffle(triple_list)
     t_pos = np.array([x for x in triple_list if x[2]==1])
     t_neg = np.array([x for x in triple_list if x[2]==0])
@@ -30,6 +30,50 @@ def sample_negative(triple_list,n=2):
     np.random.shuffle(t_neg)
     t_neg = t_neg[0:len(t_pos)*n]
     result = np.concatenate((t_pos,t_neg))
+    return result
+
+def sample_negative(triple_list,n=2,nodes=[]):
+    np.random.shuffle(triple_list)
+    t_pos = np.array([x for x in triple_list if x[2]==1])
+    t_neg = np.array([x for x in triple_list if x[2]==0])
+    n = min(n,int(len(t_neg)/len(t_pos)))
+    ##sampling per pair
+    if len(nodes) == 0:
+        neg_sampling = []
+        sampling_number = int(n/2)
+        for pospair in t_pos:
+            sampling_0 = np.array([x for x in t_neg if x[0]==pospair[0] or x[1]==pospair[0]])
+            np.random.shuffle(sampling_0)
+            for p in range(sampling_number):
+                neg_sampling.append(sampling_0[p])
+                t_neg = np.array([x for x in t_neg if x[0]!=sampling_0[p][0] or x[1]!=sampling_0[p][1]])
+                
+            sampling_1 = np.array([x for x in t_neg if x[0]==pospair[1] or x[1]==pospair[1]])
+            np.random.shuffle(sampling_1)
+            for p in range(sampling_number):
+                neg_sampling.append(sampling_1[p])
+                t_neg = np.array([x for x in t_neg if x[0]!=sampling_1[p][0] or x[1]!=sampling_1[p][1]])
+
+        result = np.concatenate((t_pos,np.array(neg_sampling)))    
+    ##sampling per nodes in pair    
+    else:        
+        neg_sampling = []
+        ###
+        n=int(n/2)
+        ###
+        total_node_pos_pair = 0
+        for node in nodes:
+            node_pos_samplinlg = np.array([x for x in t_pos if x[0]==node or x[1]==node])
+            len_pairs_node = len(node_pos_samplinlg)
+#             total_node_pos_pair +=len_pairs_node
+            node_neg_sampling = np.array([x for x in t_neg if x[0]==node or x[1]==node])
+            t_neg = np.array([x for x in t_neg if x[0]!=node and x[1]!=node])
+            np.random.shuffle(node_neg_sampling)
+            for j in range(min(len_pairs_node*n,len(node_neg_sampling))):
+                neg_sampling.append(node_neg_sampling[j])
+#         print(total_node_pos_pair)
+        result = np.concatenate((t_pos,np.array(neg_sampling)))
+    
     np.random.shuffle(result)
     return result
 
@@ -69,16 +113,15 @@ def split_splitted(file_name,neg_sample):
     #sampling neg/pos ratio + data augmentation
     if neg_sample > 0:
         train = sample_negative(train,neg_sample)
-    test = sample_negative(test,1)
-    train = data_augmentation(train)
+    test = sample_negative_random(test,1)
+#     train = data_augmentation(train)
     
     path = file_name+"/isolation/"+str(neg_sample)
     write_files(path,train,test)
     print("Train/Test split done")
     return path
-        
-    
-def split_isolation(file_name,neg_sample):
+
+def split_isolation_old(file_name,neg_sample):
     if file_name == "monitor":
         return split_splitted(file_name,neg_sample)
     
@@ -120,10 +163,57 @@ def split_isolation(file_name,neg_sample):
     print("Train/Test split done")
     return path
 
-
-def split_cv_isolation_old(file_name,neg_sample):
+    
+def split_isolation(file_name,neg_sample):
+    if file_name == "monitor":
+        return split_splitted(file_name,neg_sample)
+    
     path = file_name+"/isolation/"+str(neg_sample)+"/cv"
-    for i in range(10):
+    
+    df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic","topic"]).to_numpy()
+    df_matching = np.array([x for x in df_ds if x[2] == 1])
+    np.random.shuffle(df_matching)
+
+    #For each topic with possitive pairs, separate the 20% of node_ids in test
+    topics = np.unique(df_ds[:,3])
+    topic_pos_test = []
+    topic_pos_train = []
+    for t in topics:
+        topic_pos_pairs = np.array([x for x in df_matching if x[3] == t])
+        if len(topic_pos_pairs) == 0:
+            continue
+        topic_pos_ds = np.unique(np.concatenate((topic_pos_pairs[:,0],topic_pos_pairs[:,1])))
+        if len(topic_pos_ds) > 4:
+            np.random.shuffle(topic_pos_ds)
+            topic_pos_test.append(topic_pos_ds[0])
+            for n in range(1,len(topic_pos_ds)):
+                topic_pos_train.append(topic_pos_ds[n])
+
+    #load pairs having the previous separated node-ids in test, the rest in train  
+    test = []
+    train = []
+    for pair in df_ds:
+        if pair[0] in topic_pos_test or pair[1] in topic_pos_test:
+            test.append(pair)
+        else:
+            train.append(pair)
+    test = np.array(test)
+    train = np.array(train)
+
+    #sampling neg/pos ratio + data augmentation
+    if neg_sample > 0:
+        train = sample_negative(train,neg_sample)
+    test = sample_negative_random(test,1)
+    train = data_augmentation(train)
+
+    write_files(path,train[:,:-1],test[:,:-1])
+    print("Train/Test split done")
+    return path
+
+def split_cv_isolation(file_name,neg_sample):
+    path = file_name+"/isolation/"+str(neg_sample)+"/cv"
+    for i in range(100):
+        print("ITERATION: "+str(i))
         df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic","topic"]).to_numpy()
         df_matching = np.array([x for x in df_ds if x[2] == 1])
         np.random.shuffle(df_matching)
@@ -137,52 +227,15 @@ def split_cv_isolation_old(file_name,neg_sample):
             if len(topic_pos_pairs) == 0:
                 continue
             topic_pos_ds = np.unique(np.concatenate((topic_pos_pairs[:,0],topic_pos_pairs[:,1])))
-            if len(topic_pos_ds) > 5:
-                np.random.shuffle(topic_pos_ds)
-                topic_pos_test.append(topic_pos_ds[0])
-                for j in range(1,len(topic_pos_ds)):
-                    topic_pos_train.append(topic_pos_ds[j])
-
-        #load pairs having the previous separated node-ids in test, the rest in train  
-        test = []
-        train = []
-        for pair in df_ds:
-            if pair[0] in topic_pos_test or pair[1] in topic_pos_test:
-                test.append(pair)
-            else:
-                if pair[0] in topic_pos_train or pair[1] in topic_pos_train:
-                    train.append(pair)
-        test = np.array(test)
-        train = np.array(train)
-
-        #sampling neg/pos ratio + data augmentation
-        if neg_sample > 0:
-            train = sample_negative(train,neg_sample)
-        test = sample_negative(test,1)
-        train = data_augmentation(train)
-
-        write_files(path+"/"+str(i),train[:,:-1],test[:,:-1])
-    print("Train/Test split done")
-    return path
-
-def split_cv_isolation(file_name,neg_sample):
-    path = file_name+"/isolation/"+str(neg_sample)+"/cv"
-    for i in range(10):
-        df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic","topic"]).to_numpy()
-        df_matching = np.array([x for x in df_ds if x[2] == 1])
-        np.random.shuffle(df_matching)
-
-        #For each topic with possitive pairs, separate the 20% of node_ids in test
-        topics = np.unique(df_ds[:,3])
-        topic_pos_test = []
-        for t in topics:
-            topic_pos_pairs = np.array([x for x in df_matching if x[3] == t])
-            if len(topic_pos_pairs) == 0:
-                continue
-            topic_pos_ds = np.unique(np.concatenate((topic_pos_pairs[:,0],topic_pos_pairs[:,1])))
             if len(topic_pos_ds) > 4:
                 np.random.shuffle(topic_pos_ds)
                 topic_pos_test.append(topic_pos_ds[0])
+                for n in range(1,len(topic_pos_ds)):
+                    topic_pos_train.append(topic_pos_ds[n])
+            else:
+                for n in range(len(topic_pos_ds)):
+                    topic_pos_train.append(topic_pos_ds[n])
+                
 
         #load pairs having the previous separated node-ids in test, the rest in train  
         test = []
@@ -197,16 +250,16 @@ def split_cv_isolation(file_name,neg_sample):
 
         #sampling neg/pos ratio + data augmentation
         if neg_sample > 0:
-            train = sample_negative(train,neg_sample)
-        test = sample_negative(test,1)
-        train = data_augmentation(train)
+            train = sample_negative(train,neg_sample,topic_pos_train)
+        test = sample_negative_random(test)
+#         train = data_augmentation(train)
 
         write_files(path+"/"+str(i),train[:,:-1],test[:,:-1])
     print("Train/Test split done")
     return path
 
 
-def split_cv_random(file_name,neg_sample):
+def split_cv_random_old(file_name,neg_sample):
     df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic"]).to_numpy();
     
     if neg_sample > 0:
@@ -237,6 +290,41 @@ def split_cv_random(file_name,neg_sample):
     
     print("CV Train/Test split done")
     return path
+
+def split_cv_random(file_name,neg_sample):
+    df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic"]).to_numpy();
+    
+    if neg_sample > 0:
+        df_ds = sample_negative(df_ds,neg_sample)
+    
+    df_not_matching = np.array([x for x in df_ds if x[2]==0])
+    df_matching = np.array([x for x in df_ds if x[2]==1])
+    np.random.shuffle(df_matching)
+    np.random.shuffle(df_not_matching)
+
+    cv_pos = np.array(np.array_split(df_matching,10))
+    cv_neg = np.array(np.array_split(df_not_matching,10))
+    path = file_name+"/random/"+str(neg_sample)+"/cv"
+    for i in range(10):
+        test = np.concatenate((cv_pos[i],cv_neg[i]))
+        
+        train_pos = np.concatenate((cv_pos[0:i],cv_pos[i+1:]))
+        train_neg = np.concatenate((cv_neg[0:i],cv_neg[i+1:]))
+        
+        train_pos = np.concatenate((train_pos))
+        train_neg = np.concatenate((train_neg))
+        
+        train = np.concatenate((train_pos,train_neg)).squeeze()
+        
+        test = sample_negative_random(test,1)
+#         train = data_augmentation(train)
+        
+        write_files(path+"/"+str(i),train,test)
+            
+    
+    print("CV Train/Test split done")
+    return path
+
 def split_random(file_name,neg_sample):
     df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic"]);
     df_not_matching = df_ds[df_ds["matching_topic"] == 0 ].to_numpy()

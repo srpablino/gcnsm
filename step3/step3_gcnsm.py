@@ -52,7 +52,7 @@ def load_env(ds_name=None,ns=None,st=None,sp=None,we=None,cv=-1):
         parameter_error("create_new_split",create_new_split)
     else:
         create_new_split = sp
-    if we == None or not str(we) or we not in ["BERT","BERT2","FASTTEXT","FASTTEXT2","FASTTEXT2_2","FASTTEXT2_NAMES","FASTTEXT2_SHORT","FASTTEXT_SIMPLE_CLEAN","FASTTEXT2_CLEAN","FASTTEXT2_CLEAN5","FASTTEXT2_CLEAN4","FASTTEXT2_CLEAN3","FASTTEXT2_CLEAN2","FASTTEXT2_NEW","FASTTEXT_SIMPLE","FASTTEXT_SIMPLE_NAMES","FASTTEXT_SIMPLE_SHORT","MONITOR_SIMPLE","MONITOR_SIMPLE_SHORT"]:
+    if we == None or not str(we) or we not in ["BERT","BERT2","FASTTEXT","FASTTEXT2","FASTTEXT2_2","FASTTEXT2_NAMES","FASTTEXT2_SHORT","FASTTEXT_SIMPLE_CLEAN","FASTTEXT2_CLEAN","FASTTEXT2_CLEAN5","FASTTEXT2_CLEAN4","FASTTEXT2_CLEAN3","FASTTEXT2_CLEAN2","FASTTEXT2_NEW","FASTTEXT_SIMPLE","FASTTEXT_SIMPLE_NAMES","FASTTEXT_SIMPLE_SHORT","MONITOR_SIMPLE","MONITOR_SIMPLE_SHORT","MONITOR_CLEAN","MONITOR_CLEAN2"]:
         parameter_error("word_embedding_encoding",word_embedding_encoding)
     else:
         word_embedding_encoding = we
@@ -143,9 +143,13 @@ def load_graph():
     
     if word_embedding_encoding == "MONITOR_SIMPLE":
         g_x = nx.read_gpickle("./word_embeddings/monitor_fasttext_simple.gpickle")   
-        
     if word_embedding_encoding == "MONITOR_SIMPLE_SHORT":
         g_x = nx.read_gpickle("./word_embeddings/monitor_fasttext_simple_short.gpickle")   
+        
+    if word_embedding_encoding == "MONITOR_CLEAN":
+        g_x = nx.read_gpickle("./word_embeddings/clean_monitor_fasttext_short.gpickle")   
+    if word_embedding_encoding == "MONITOR_CLEAN2":
+        g_x = nx.read_gpickle("./word_embeddings/clean_monitor_fasttext_short2.gpickle")   
         
     if word_embedding_encoding == "BERT":
         g_x = nx.read_gpickle("./word_embeddings/encoded_bert.gpickle")
@@ -218,7 +222,7 @@ def load_dgl():
 ## Training
 #### Evaluation methods
 # Accuracy based on thresholds of distance (e.g. cosine > 0.8 should be a positive pair)
-def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_dist=0.2,threshold_cos=0.8,path=None):
+def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_dist=0.2,threshold_cos=0.5,path=None):
     indices = []
     
     #mask = np.array([x for x in mask if x[2]==1])
@@ -304,54 +308,45 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_di
     return output
 
 # Accuracy based on nearest neighboor (e.g. the nearest node should be a positive pair)
-def ne_ne_acc_isolation(model, g, features, mask,loss,print_details=False):
+def ne_ne_acc_isolation(model, g, features):
 
-    train_indices = np.unique(np.concatenate((train_mask[:,0],train_mask[:,1])))
     train_pos_samples = np.array([x for x in train_mask if x[2]==1])    
-    train_pos_samples_indices = np.unique(np.concatenate((train_pos_samples[:,0],train_pos_samples[:,1])))
+    test_pos_samples = np.array([x for x in test_mask if x[2]==1])    
+#     print("test samples")
+#     for t in range(len(test_pos_samples)):
+#         print("{}-{}".format(t,test_pos_samples[t]))
+#     print("#####################################################")
     
-    mask_indices = np.unique(np.concatenate((mask[:,0],mask[:,1])))
-    mask_pos_samples = np.array([x for x in mask if x[2]==1])    
-    mask_pos_samples_indices = np.unique(np.concatenate((mask_pos_samples[:,0],mask_pos_samples[:,1])))
-    mask_pos_samples_indices = np.array([x for x in mask_pos_samples_indices if x not in train_pos_samples_indices ])
+    train_indices = np.unique(np.concatenate((train_pos_samples[:,0],train_pos_samples[:,1])))
+#     print("train indices")
+#     for t in range(len(train_indices)):
+#         print("{}-{}".format(t,train_indices[t]))
+#     print("#####################################################")
+    test_indices = np.unique(np.concatenate((test_pos_samples[:,0],test_pos_samples[:,1])))
+    test_indices = np.array([x for x in test_indices if x not in train_indices])    
+#     print("test indices")
+#     for t in range(len(test_indices)):
+#         print("{}-{}".format(t,test_indices[t]))
+#     print("#####################################################")
     
-    pos_samples = np.concatenate((train_pos_samples,mask_pos_samples))
-    pos_samples_indices = np.unique(np.concatenate((pos_samples[:,0],pos_samples[:,1])))
-    train_embeddings,mask_pos_samples_embeddings = model(g, features,train_pos_samples_indices,mask_pos_samples_indices)
-    
-    sum_accuracy = 0
-    for i in range(len(mask_pos_samples_indices)):
-        candidate = mask_pos_samples_embeddings[i]
-        #dist() | m - dist()
-        if loss == "ContrastiveLoss":
-            pdist = th.nn.PairwiseDistance(p=2)        
-            result = pdist(candidate,train_embeddings)
-            largest = False
-        #1 - cos() | max(0,cos() - m)
-        if loss == "CosineEmbeddingLoss":
-            thecos = th.nn.CosineSimilarity(dim=1, eps=1e-6)
-            result = thecos(candidate.reshape(1,len(candidate)),train_embeddings)
-            largest = True
-        
-        #we ignore the result of the vector with itself
-#         print("Candidate id: " + str(mask_pos_samples_indices[i]))        
-        result_indices = th.topk(result, 2, largest=largest).indices
-        closest_node_index = th.tensor(train_pos_samples_indices)[result_indices]
-#         print(closest_node_index)
-#         print("all in mask")
-#         print(mask_pos_samples)
-        
-#         check_relation_nodes = np.array([x for x in pos_samples 
-        check_relation_nodes = np.array([x for x in mask_pos_samples 
-                                         if (x[0]==mask_pos_samples_indices[i] and x[1] in closest_node_index) or 
-                                         (x[1]==mask_pos_samples_indices[i] and x[0] in closest_node_index)])
-#         print("relations found: ")
-#         print(check_relation_nodes)
-        if len(check_relation_nodes) > 0:
-            sum_accuracy += 1
-    
-    return sum_accuracy / len(mask_pos_samples_indices)    
-
+    found = 0
+    for node in test_indices:
+        all_node = np.array([node]*len(train_indices))
+        z1,z2 = model(g, features,all_node,train_indices)
+        cos = th.nn.CosineSimilarity(dim=1, eps=1e-6)
+        result = cos(z1,z2)
+#         print("results")
+#         for t in range(len(result)):
+#             print("{}-{}".format(t,result[t]))
+#         print("#####################################################")
+        maxcos = result.argmax(axis=0).item()
+        print("ArgMax = "+str(maxcos))
+        node_cluster = train_indices[maxcos]
+        out = np.array([x for x in test_pos_samples if (x[0]==node or x[1]==node) and (x[0]==node_cluster or x[1]==node_cluster) ])
+        if len(out) > 0:
+            found+=1
+    return found / len(test_indices) 
+           
 # Accuracy based on nearest neighboor (e.g. the nearest node should be a positive pair)
 def ne_ne_acc_random(model, g, features, mask,loss,print_details=False):
 
@@ -410,6 +405,13 @@ def confusion_matrix(model, g, features, mask,loss,threshold):
         acc = threshold_acc(model, g, features, mask,loss,print_details=True,threshold_dist=threshold,threshold_cos=threshold)
         return acc
 
+    
+def confusion_matrix_quick(model, g, features):
+    model.eval()
+    with th.no_grad():
+        acc = ne_ne_acc_isolation(model, g, features)
+        return acc    
+    
 def confusion_matrix_cv(model, g, features, path,loss,threshold):
     model.eval()
     cv_number = path.split("tmp_cv_result_")[1].split(".")[0]
@@ -447,6 +449,116 @@ def evaluate(training, g, features, mask,loss):
 import time
 import numpy as np        
 
+
+def shuffle_splits4(train_mask, n):
+    train_pos = np.array([x for x in train_mask if x[2]==1])
+    nodes_pos = np.unique(np.concatenate((train_pos[:,0],train_pos[:,1])))
+    np.random.shuffle(nodes_pos)
+    result = []
+    partial_results = np.array([]).reshape(0,3)
+    for node in nodes_pos:
+        filter_node = np.array([x for x in train_mask if x[0]==node or x[1]==node])
+        partial_results = np.concatenate((partial_results,filter_node))
+        if len(partial_results) >= n:
+            np.random.shuffle(partial_results)
+            result.append(partial_results)
+            partial_results = np.array([]).reshape(0,3)
+    if len(partial_results) > 0:
+        result.append(partial_results)
+#     for r in result:
+#         print(len(r))
+    return np.array(result)
+
+
+def shuffle_splits2(train_mask, n):
+    train_pos = np.array([x for x in train_mask if x[2]==1])
+    np.random.shuffle(train_pos)
+    nodes_pos = np.unique(np.concatenate((train_pos[:,0],train_pos[:,1])))
+#     np.random.shuffle(nodes_pos)
+    node_pos_group = np.array_split(nodes_pos,n)
+    result = []
+    for i in range(n):
+        partial_results = []
+        for node in node_pos_group[i]:
+            filter_node = [x for x in train_mask if x[0]==node or x[1]==node]
+            partial_results.append(filter_node)
+        result.append(np.concatenate((partial_results)))
+        np.random.shuffle(result[i])
+#         print("len nodes: "+str(len(node_pos_group[i])))
+#         print(result[i])
+#         print("len partition: "+str(len(result[i])))
+    return np.array(result)
+
+
+def shuffle_splits_ns(train_mask, n,ns=4):
+    train_pos = np.array([x for x in train_mask if x[2]==1])
+    train_neg = np.array([x for x in train_mask if x[2]==-1])
+    nodes_pos = np.unique(np.concatenate((train_pos[:,0],train_pos[:,1])))
+    result = []
+    partial_results = np.array([]).reshape(0,3)
+    for node in nodes_pos:
+        partial = np.array([]).reshape(0,3)
+        filter_node_pos = np.array([x for x in train_pos if x[0]==node or x[1]==node])
+        ns_len =ns * len(filter_node_pos)
+#         ns_len =int(ns/2) * len(filter_node_pos)
+        filter_node_neg = np.array([x for x in train_neg if x[0]==node or x[1]==node])
+        np.random.shuffle(filter_node_neg)
+        #data augmentation
+#         for aug in range(int(ns/2)):
+#             partial = np.concatenate((partial,filter_node_pos))
+        #without data aug
+        partial = np.concatenate((partial,filter_node_pos))
+        ################
+        partial = np.concatenate((partial,filter_node_neg[0:ns_len]))
+    
+        partial_results = np.concatenate((partial_results,partial))
+        
+        if len(partial_results) >= n:
+            np.random.shuffle(partial_results)
+            result.append(partial_results)
+            partial_results = np.array([]).reshape(0,3)
+    if len(partial_results) > 0:
+        result.append(partial_results)
+    for r in result:
+        print(len(r))
+
+    return np.array(result)
+
+def shuffle_splits_ns2(train_mask, n,ns=4):
+    train_pos = np.array([x for x in train_mask if x[2]==1])
+    train_neg = np.array([x for x in train_mask if x[2]==-1])
+    nodes_pos = np.unique(np.concatenate((train_pos[:,0],train_pos[:,1])))
+    result = []
+    partial_results_neg = np.array([]).reshape(0,3)
+    partial_results_pos = np.array([]).reshape(0,3)
+    for node in nodes_pos:
+        filter_node_pos = np.array([x for x in train_pos if x[0]==node or x[1]==node])
+        ns_len =int((ns/2) * len(filter_node_pos))
+        filter_node_neg = np.array([x for x in train_neg if x[0]==node or x[1]==node])
+        np.random.shuffle(filter_node_neg)
+        partial_results_neg = np.concatenate((partial_results_neg,filter_node_neg[0:ns_len]))
+    #data aug
+#     for i in range(ns):
+#         partial_results_pos = np.concatenate((partial_results_pos,train_pos))
+    #no data aug
+    partial_results_pos = np.concatenate((partial_results_pos,train_pos))
+    
+    np.random.shuffle(partial_results_pos)
+    np.random.shuffle(partial_results_neg)
+    
+    numb_splits = int(( len(partial_results_pos) + len(partial_results_neg) ) / n) + 1
+    pos_batch = np.array_split(partial_results_pos,numb_splits)
+    neg_batch = np.array_split(partial_results_neg,numb_splits)
+    
+    result = []
+    for j in range(numb_splits):
+        result.append(np.concatenate((pos_batch[j],neg_batch[j])))
+        np.random.shuffle(result[j])
+#     for r in result:
+#         print(len(r))
+    return np.array(result)
+
+
 def shuffle_splits(train_mask, n):
     train_pos = [x for x in train_mask if x[2]==1]
     train_neg = [x for x in train_mask if x[2]==-1]
@@ -459,14 +571,14 @@ def shuffle_splits(train_mask, n):
         result.append(np.concatenate((pos_batch[i],neg_batch[i])))
         np.random.shuffle(result[i])
     return np.array(result)
-    
-
-def train(training,iterations):
+        
+def train(training,iterations,nsample=4):
     dur = []
     print(str("Start of training...NN {} Loss {} Split {}: ").format(training.net_name,training.loss_name,training.batch_splits))
     #set max accuracy found if model already has state
     max_acc = 0.0
     max_acc2 = 0.0
+    loss_min = 99999999.9
     if len(training.log) > 0:
         for l in training.log:
             if l["fscore"] > max_acc:
@@ -484,6 +596,11 @@ def train(training,iterations):
     #specify number of threads for the training
     #th.set_num_threads(2)
 
+    # create batchs and shuffle data for training
+#     train_batch = shuffle_splits4(train_mask,training.batch_splits)
+#     numb_splits = int(len(train_mask) / training.batch_splits) + 1
+#     train_batch = shuffle_splits2(train_mask,numb_splits)
+    
     for epoch in range(iterations):
         #model train mode
         training.net.train()
@@ -491,14 +608,16 @@ def train(training,iterations):
         epoch_loss = 0
         
         ## create batchs and shuffle data for training
-        numb_splits = int(len(train_mask) / training.batch_splits) + 1
-        train_batch = shuffle_splits(train_mask,numb_splits)
+        train_batch = shuffle_splits_ns2(train_mask,training.batch_splits,nsample)
+#         numb_splits = int(len(train_mask) / training.batch_splits) + 1
+#         train_batch = shuffle_splits_ns2(train_mask,numb_splits,nsample)
 #         np.random.shuffle(train_mask)
 #         numb_splits = int(len(train_mask) / training.batch_splits) + 1
 #         train_batch = np.array_split(train_mask,numb_splits)
         
         #forward_backward positive batch sample
         for split in train_batch:
+#             np.random.shuffle(split)
             z1,z2 = training.net(g, g.ndata['vector'],split[:,0],split[:,1])
             loss = training.loss(z1,z2, th.tensor(split[:,2]))
             
@@ -554,11 +673,20 @@ def train(training,iterations):
             training.set_best(training)
             max_acc = output['fscore']
             max_acc2 = acc2
-            need_update = 0
-        else:
-            need_update += 1
-            if need_update >10:
-                training.set_lr(training.lr * .99)       
+#             need_update = 0
+#         else:
+#             need_update += 1
+#             if need_update >10:
+#                 training.set_lr(training.lr * .99)       
+#         if epoch_loss <= loss_min:
+#             loss_min = epoch_loss
+#             need_update = 0
+#         else:
+#             need_update += 1
+#             if need_update >5:
+#                 training.set_lr(training.lr * .99)       
+        training.set_lr(training.lr * .98)       
+        
                                     
     #Recover initial setup to save file
     training.lr = o_lr
@@ -590,9 +718,9 @@ def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
     
     training_copy = None
     for i in range(init,ending):
-        load_env(ds_name=dataset_name,ns=nsample,st=strategy,sp=create,we=word_embedding_encoding,cv=i)
+        load_env(ds_name=dataset_name,ns=0,st=strategy,sp=create,we=word_embedding_encoding,cv=i)
         training_copy = copy.deepcopy(training)
-        train(training_copy,iterations)
+        train(training_copy,iterations,nsample)
         path_setup = dataset_name+"/"+strategy+"/"+str(neg_sample)+"/cv"
         if training_copy.best != None:
             training_copy.best.epochs_run = training_copy.epochs_run

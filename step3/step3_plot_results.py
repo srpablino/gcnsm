@@ -27,7 +27,7 @@ loss_parameters = ["0.7+mean","0.8+mean","0.5+mean","0.3+mean"]
 learning_rates = [1e-2,6e-2,8e-3]
 # splits = ["32","64","128","256","512","1024","2048","4096","4810","8192","16384","4810","9620","19240"]
 # splits = ["1024","2048","4096","4810","8192","16384","4810","9620","19240","40000","9000"]
-splits = ["1024","4096","40000"]
+splits = ["1024","4096","2048","40000"]
 ep_run_init = ["00"]
 ep_run_end = ["50"]
 # ep_run_init = ["00","30","50","60","100","125","150","175","200","250","300"]
@@ -174,16 +174,16 @@ def plot_details(sampling,db,st,a,op,lf,subpath=""):
 
 #                             fig1.suptitle(str("NegSample: {}x Optimizer: {} Architecture: {} Loss: {} lr: {} splits: {} Loss margin: {}").format(sampling,op,a,lf,enot,s,loss_parameters[lp]),fontsize=18)
 
-                            axs[0].set_ylim([0.5,1.0])
-                            axs[0].set_yticks(np.arange(0.5, 1.0, 0.025))
+                            axs[0].set_ylim([0.0,1.0])
+                            axs[0].set_yticks(np.arange(0.0, 1.05, 0.05))
                             axs[0].yaxis.grid(True)
                             axs[0].tick_params(labelsize=18)
                             axs[0].plot(range(0,len(df_results0)), acc, marker="o", c=colors[lp],  linestyle='--', label="Max accuracy: "+ str("{:.3f}".format(max_acc)))
                             axs[0].set_title("Test accuracy",fontsize=24)
                             leg = axs[0].legend(loc='best', ncol=1, shadow=True, fancybox=True,fontsize=24)
 
-                            axs[1].set_ylim([0.5,1.0])
-                            axs[1].set_yticks(np.arange(0.5, 1.0, 0.025))
+                            axs[1].set_ylim([0.0,1.0])
+                            axs[1].set_yticks(np.arange(0.0, 1.05, 0.05))
                             axs[1].yaxis.grid(True)
                             axs[1].tick_params(labelsize=18)
                             axs[1].set_title("Test fscore/recall/precision",fontsize=24)
@@ -572,14 +572,14 @@ def plot_cv_details(sampling,db,st,a,op,lf,subpath="",nit=None):
                                 axs[0].set_yticks(np.arange(0.0, 1.05, 0.05))
                                 axs[0].yaxis.grid(True)
                                 axs[0].tick_params(labelsize=18)
-                                axs[0].plot(range(0,len(loss)), acc, marker="o", c=colors[i],  linestyle='--', label="Run:{:.0f},Max Accuracy: {:.5f}".format(i+1,max_acc))
+                                axs[0].plot(range(0,len(loss)), acc, marker="o", c=colors[i],  linestyle='--', label="Run:{:.0f},Max Accuracy: {:.5f}".format(df_results0[i][0]+1,max_acc))
                                 #format(df_results0[i][0]
 
                                 axs[1].set_ylim([0.0,1.0])
                                 axs[1].set_yticks(np.arange(0.0, 1.05, 0.05))
                                 axs[1].yaxis.grid(True)
                                 axs[1].tick_params(labelsize=18)
-                                axs[1].plot(range(0,len(fscore)), fscore, marker="o", c=colors[i],  linestyle='--', label=str("Run:{:.0f}, Max Fscore: {:.5f}, with Recall: {:.5f} and Precision: {:.5f}".format(i+1,max_fscore[0],max_fscore[1],max_fscore[2])))
+                                axs[1].plot(range(0,len(fscore)), fscore, marker="o", c=colors[i],  linestyle='--', label=str("Run:{:.0f}, Max Fscore: {:.5f}, with Recall: {:.5f} and Precision: {:.5f}".format(df_results0[i][0]+1,max_fscore[0],max_fscore[1],max_fscore[2])))
                         #df_results0[i][0]        
                         except:
                             continue
@@ -666,12 +666,13 @@ def plot_bar(sampling,db,st,a,op,lf,subpath="",nit=None):
                             max_acc_list = []
                             
                             width = 0.35  # the width of the bars
-                            fig1, ax = plt.subplots(figsize=(50, 10))
+                            fig1, ax = plt.subplots(figsize=(20, 5))
+#                             fig1, ax = plt.subplots(width=len(df_results0))
                             
                             labels = []
                             
                             for i in  range (len(df_results0)):
-                                labels.append("Run "+str(i+1))
+                                labels.append(str(i+1))
                                 logs = df_results0[i][1]
                                 run = df_results0[i][0]
                                 loss = (np.array([x["loss"] for x in logs])*1000).tolist()
@@ -695,10 +696,16 @@ def plot_bar(sampling,db,st,a,op,lf,subpath="",nit=None):
                         
                         
                         x = np.arange(len(labels))  # the label locations
-                        rects1 = ax.bar(x - 3*width/4, max_fscore_list, width/2, label='Fscore')
-                        rects2 = ax.bar(x - width/4, max_recall_list, width/2, label='Recall')
-                        rects3 = ax.bar(x + width/4, max_prec_list, width/2, label='Precision')
-                        rects4 = ax.bar(x + 3*width/4, max_acc_list, width/2, label='Accuracy')
+                        
+#                         rects1 = ax.bar(x - 3*width/4, max_fscore_list, width/2, label='Fscore')
+#                         rects2 = ax.bar(x - width/4, max_recall_list, width/2, label='Recall')
+#                         rects3 = ax.bar(x + width/4, max_prec_list, width/2, label='Precision')
+#                         rects0 = ax.bar(x + 3*width/4, max_acc_list, width/2, label='Accuracy')
+
+                        rects1 = ax.bar(x - 3*width/4, max_acc_list, width/2, label='Max Accuracy')
+                        rects2 = ax.bar(x - width/4, max_fscore_list, width/2, label='Max Fscore')
+                        rects3 = ax.bar(x + width/4, max_recall_list, width/2, label='Max Recall')
+                        rects4 = ax.bar(x + 3*width/4, max_acc_list, width/2, label='Max Precision')
 
                         max_fscore_avg = np.average(np.array(max_fscore_list))
                         var_max_fscore = np.var(np.array(max_fscore_list))
@@ -717,17 +724,22 @@ def plot_bar(sampling,db,st,a,op,lf,subpath="",nit=None):
                         std_max_acc = np.std(np.array(max_acc_list))
                         
                         # Add some text for labels, title and custom x-axis tick labels, etc.
+#                         axs[0].set_ylim([0.0,1.0])
+                        ax.set_yticks(np.arange(0.0, 1.05, 0.05))
+                        ax.yaxis.grid(True)
                         ax.set_ylabel('Score')
                         ax.set_title("Test accuracy AVG: {:.3f} - SD: {:.3f} ; AVG Test: Fscore: {:.3f} - SD: {:.3f} ; Recall: {:.3f} - SD: {:.3f} ; Precision: {:.3f} - SD: {:.3f}".format(max_acc_avg,std_max_acc,max_fscore_avg,std_max_fscore,max_recall_avg,std_max_recall,max_prec_avg,std_max_prec))
                         ax.set_xticks(x)
                         ax.set_xticklabels(labels)
                         ax.legend()
-                        autolabel(rects1,ax)
-                        autolabel(rects2,ax)
-                        autolabel(rects3,ax)
-                        autolabel(rects4,ax)
+#                         autolabel(rects1,ax)
+#                         autolabel(rects2,ax)
+#                         autolabel(rects3,ax)
+#                         autolabel(rects4,ax)
 #                         fig1.tight_layout()
-                        fig1.savefig(path+file_name+"/bar_cv_results.png",pad_inches = 0,bbox_inches='tight')
+                        
+
+                        fig1.savefig(path+file_name+"/bar_cv_results.png",bbox_inches="tight",dpi=300)
 #                         plt.show()
                         
             

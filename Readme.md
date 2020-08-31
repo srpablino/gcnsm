@@ -1,6 +1,8 @@
 # Graph Convolutional Networks - Schema Matching (GCNSM)
 
-For the dataset similarity experiments (based on meta-features extracted from OML datasets, see [this work](https://github.com/AymanUPC/all_prox_openml/tree/master/OML02)), you can skip step1 and step2 by downloading the files indicated in the folder step2/output/
+For the 10-fold-cv and random_sub_sampling dataset similarity experiments (based on meta-features extracted from OML datasets, see [this work](https://github.com/AymanUPC/all_prox_openml/tree/master/OML02)), you can skip step1 and step2 by downloading the files indicated in the folder step2/output/
+
+For the hold-out attribute matching experiment, you can skip step1 and step2 by downoading the files indicated in the folder step2/output/
 
 ## Step 1:
 Extract metafeatures from datasets with pandas profiling tool

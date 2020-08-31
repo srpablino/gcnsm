@@ -183,7 +183,7 @@ def split_isolation(file_name,neg_sample):
         if len(topic_pos_pairs) == 0:
             continue
         topic_pos_ds = np.unique(np.concatenate((topic_pos_pairs[:,0],topic_pos_pairs[:,1])))
-        if len(topic_pos_ds) > 4:
+        if len(topic_pos_ds) > 5:
             np.random.shuffle(topic_pos_ds)
             topic_pos_test.append(topic_pos_ds[0])
             for n in range(1,len(topic_pos_ds)):
@@ -212,7 +212,7 @@ def split_isolation(file_name,neg_sample):
 
 def split_cv_isolation(file_name,neg_sample):
     path = file_name+"/isolation/"+str(neg_sample)+"/cv"
-    for i in range(100):
+    for i in range(20):
         print("ITERATION: "+str(i))
         df_ds = read_dataset("./datasets/"+file_name+".csv",keep_columns=["dataset1_id", "dataset2_id","matching_topic","topic"]).to_numpy()
         df_matching = np.array([x for x in df_ds if x[2] == 1])
@@ -227,7 +227,7 @@ def split_cv_isolation(file_name,neg_sample):
             if len(topic_pos_pairs) == 0:
                 continue
             topic_pos_ds = np.unique(np.concatenate((topic_pos_pairs[:,0],topic_pos_pairs[:,1])))
-            if len(topic_pos_ds) > 4:
+            if len(topic_pos_ds) > 5:
                 np.random.shuffle(topic_pos_ds)
                 topic_pos_test.append(topic_pos_ds[0])
                 for n in range(1,len(topic_pos_ds)):

@@ -6,4 +6,7 @@ openML/*
 draft_test.ipynb
 *.png
 step2/resources/fasttext.bin
+step2/output/*
+models/*
+step1/input/*
 __pycache__

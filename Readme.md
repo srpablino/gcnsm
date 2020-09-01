@@ -1,18 +1,18 @@
 # Graph Convolutional Networks - Schema Matching (GCNSM)
 
-For the 10-fold-cv and random_sub_sampling dataset similarity experiments (based on meta-features extracted from OML datasets, see [this work](https://github.com/AymanUPC/all_prox_openml/tree/master/OML02)), you can skip step1 and step2 by downloading the files indicated in the folder step2/output/
+For the dataset similarity experiments (based on meta-features extracted from openML datasets, see [this work](https://github.com/AymanUPC/all_prox_openml/tree/master/OML02)), and the attribute matching based on the monitor dataset from the [DI2KG challenge](http://di2kg.ing.uniroma3.it/2020/#challenge), you can skip step1 and step2 by downloading the files indicated in the folder step2/output/
 
-For the hold-out attribute matching experiment, you can skip step1 and step2 by downoading the files indicated in the folder step2/output/
+If you want to run all steps, you must provide the input-files for the involved datasets in your experiments. For the example experiments (openML and monitor), you can download the input files as indicated in the readme file inside step1/input
 
 ## Step 1:
 Extract metafeatures from datasets with pandas profiling tool
 You need to create a folder (/step1/input/folder_experiment_name/) with the datasets of your experiment inside
 
 ## Step 2: 
-Build graph from the datasets and metafeatures + encoded features of the datasets using the fastText word embeddings model
+Build graph from the datasets and metafeatures + encoded features of the datasets using the fastText word embeddings model. It uses step1/output/folder_experiment_name/ files.
 
 ## Step 3: 
-Use the encoded graph to train a NN which will learn how the input datasets are related, and be able to relate new unseen datasets to the ones you already have. This step requieres that you have the graph with the fasttext-encoded features of your input datasets (see step2/output/readme.txt)
+Use the encoded graph to train a NN which will learn how the input datasets are related, and be able to relate new unseen datasets to the ones you already have. This step requieres that you have the graph with the fasttext-encoded features of your input datasets (see step2/output/readme.txt to download the encoded graph for the example experiments). If you started from step1, this step uses the files generated at: step2/output/folder_experiment_name/
 
 This step also requeres that you have a csv ground_truth (with a header) following the format: \
 id1,id2,match \

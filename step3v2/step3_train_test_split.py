@@ -28,11 +28,11 @@ def write_files(outdir,train,test):
     df_train.to_csv(outdir+"/train.csv",index=False)
     df_test.to_csv(outdir+"/test.csv",index=False)
     
-def random_subsam(database_name):
-    outputdir = dataset+"/random_subsam"
+def random_subsam(dataset_name):
+    outputdir = dataset_name+"/random_subsam"
     for i in range(20):
         print("ITERATION: "+str(i))
-        df_ds = pd.read_csv("./ground_truth/"+dataset+"/"+dataset+".csv").to_numpy();
+        df_ds = pd.read_csv("./ground_truth/"+dataset_name+"/"+dataset_name+".csv").to_numpy();
         df_matching = np.array([x for x in df_ds if x[2] == 1])
         np.random.shuffle(df_matching)
 
@@ -66,9 +66,9 @@ def random_subsam(database_name):
         test = np.array(test)
         train = np.array(train)
 
-        test = sample_negative_random(test)
+        test = sample_negative(test)
 
-        write_files("./ground_truth/"+outputdir+"/"+str(i),train[:,:-1],test[:,:-1])
+        write_files("./ground_truth/"+outputdir+"/"+str(i),train[:,:3],test[:,:3])
     print("Train/Test split done")
     return outputdir
 
@@ -96,15 +96,15 @@ def cv_10(dataset):
         
         test = sample_negative(test,1)
         
-        write_files("./ground_truth/"+output_path+"/"+str(i),train,test)
+        write_files("./ground_truth/"+output_path+"/"+str(i),train[:,:3],test[:,:3])
             
     
     print("CV Train/Test split done")
-    return outputdir
+    return output_path
 
-experiments = ["random_subsam","10_fold_cv"]
+experiments = ["random_subsam","10_cv"]
 def split_ds(dataset_name,experiment):
     if experiment == experiments[0]:
         return random_subsam(dataset_name)
-    if experiment == experiment[1]:
+    if experiment == experiments[1]:
         return cv_10(dataset_name)

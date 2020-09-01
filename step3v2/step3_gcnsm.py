@@ -1,7 +1,7 @@
 ## Get dataset with ~80% train, ~20% test
 import numpy as np
 import pandas as pd
-from step3 import step3_train_test_split as ds_split
+import step3_train_test_split as ds_split
 import copy
 import os
 from pathlib import Path
@@ -16,11 +16,12 @@ create_new_split = False
 path_setup = None
 dataset_name = "openml_203ds_datasets_matching"
 cross_v=-1
+g = None
 
 def parameter_error(param_error,value):
     raise NameError("Encounter error in parameter {}".format(param_error))
-    
-def load_env(ds_name=None,ns=None,experiment=None,new_split=None,cv=-1): 
+
+def load_env(ds_name=None,ns=None,experiment=None,new_split=None,cv=0): 
     global dataset_name
     global neg_sample
     global strategy
@@ -43,7 +44,7 @@ def load_env(ds_name=None,ns=None,experiment=None,new_split=None,cv=-1):
     else:
         neg_sample = ns
         
-    if experiment == None or not str(experiment) or experiment not in ["10_cv","random_subsamp","hold_out"]:
+    if experiment == None or not str(experiment) or experiment not in ["10_cv","random_subsam","hold_out"]:
         parameter_error("strategy",strategy)
     else:
         strategy = experiment
@@ -59,7 +60,7 @@ def load_env(ds_name=None,ns=None,experiment=None,new_split=None,cv=-1):
     print("create_new_split= "+str(create_new_split))
     print("cross_v= "+str(cross_v))    
 
-    if cross_v < 0:
+    if strategy == "hold_out":
         path_setup = dataset_name+"/"+strategy
         train_mask = pd.read_csv("./ground_truth/"+path_setup+"/train.csv").to_numpy()
         test_mask = pd.read_csv("./ground_truth/"+path_setup+"/test.csv").to_numpy()
@@ -85,15 +86,15 @@ def load_env(ds_name=None,ns=None,experiment=None,new_split=None,cv=-1):
 
 ## Read graph of metafeatures
 import networkx as nx 
-map_ds = None
-map_reverse_ds_order = None
+map_nodes = None
+map_reverse = None
 def load_graph():
-    global map_ds
-    global map_reverse_ds_order
+    global map_nodes
+    global map_reverse
     global train_mask
     global test_mask
     
-    g_x = nx.read_gpickle("../step2/output/"+dataset_name+"nodes_embeddings.gpickle")
+    g_x = nx.read_gpickle("../step2/output/"+dataset_name+"/nodes_embeddings.gpickle")
 
     node_order = 0
     for x,n in sorted(g_x.nodes(data=True)):
@@ -121,6 +122,13 @@ def load_graph():
     train_mask = train_mask.astype(np.float) 
     test_mask = test_mask.astype(np.float) 
     
+    ##get only same number of negative pairs for test to have 50/50 pos and neg
+    test_pos = [x for x in test_mask if x[2]==1.0]
+    test_neg = [x for x in test_mask if x[2]==-1.0]
+    np.random.shuffle(test_neg)
+    test_mask = np.concatenate((test_pos,test_neg[0:len(test_pos)]))
+    np.random.shuffle(test_mask)
+    
     return g_x
 
 
@@ -132,12 +140,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from dgl import DGLGraph
 #convert from networkx to graph deep library format
-g = None
 def load_dgl():
     global g
     g_x = load_graph()
-    g = dgl.DGLGraph()
-    g.from_networkx(g_x,node_attrs=['tipo','vector','node_order'], edge_attrs=None)
+    g = dgl.from_networkx(g_x,node_attrs=['vector','node_order'], edge_attrs=None)
+#     g = dgl.DGLGraph()
+#     g.from_networkx(g_x,node_attrs=['tipo','vector','node_order'], edge_attrs=None)
     print("Meta-feature graph from datasets loaded")
 
 
@@ -227,29 +235,46 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_di
     
     return output
 
-def confusion_matrix(model, g, features, mask,loss,threshold):
-    model.eval()
-    for m in mask:
-        if m[2]==0:
-            m[2]=-1
-    with th.no_grad():
-        acc = threshold_acc(model, g, features, mask,loss,print_details=True,threshold_dist=threshold,threshold_cos=threshold)
-        return acc
-    
-def confusion_matrix_cv(model, g, features, path,loss,threshold):
-    model.eval()
-    cv_number = path.split("tmp_cv_result_")[1].split(".")[0]
-    path=path.split("/net_name")[0].replace("models/","datasets/")+"/"+cv_number
-    tmp_test = pd.read_csv(path+"/test.csv").to_numpy()
-    for mask in tmp_test:
-        mask[0] = map_ds[str(mask[0])]
-        mask[1] = map_ds[str(mask[1])]
-        if mask[2]==0:
-            mask[2]=-1
-        
-    with th.no_grad():
-        acc = threshold_acc(model, g, features, tmp_test,loss,print_details=True,threshold_dist=threshold,threshold_cos=threshold)
-        return acc    
+# def confusion_matrix(model, g, features, mask,loss,threshold):
+def confusion_matrix(training,path=None):
+    model = training.net
+    loss = training.loss_name
+    if strategy == "hold_out":
+        model.eval()
+        test_path = "./ground_truth/"+path_setup+"/test.csv"
+        tmp_test = pd.read_csv(test_path).to_numpy()
+        for mask in tmp_test:
+            mask[0] = map_nodes[str(mask[0]).strip().replace('\xa0','')]
+            mask[1] = map_nodes[str(mask[1]).strip().replace('\xa0','')]
+            if mask[2] == 0:
+                mask[2] = -1
+        tmp_test = tmp_test.astype(np.float) 
+        ##get only same number of negative pairs for test to have 50/50 pos and neg
+        test_pos = [x for x in tmp_test if x[2]==1.0]
+        test_neg = [x for x in tmp_test if x[2]==-1.0]
+        np.random.shuffle(test_neg)
+        tmp_test = np.concatenate((test_pos,test_neg[0:len(test_pos)]))
+        np.random.shuffle(tmp_test)
+        with th.no_grad():
+            acc = threshold_acc(model, g, g.ndata['vector'], tmp_test,loss,print_details=True)
+            return acc
+    else:
+        if strategy == "10_cv" or strategy == "random_subsam":   
+            model.eval()
+            cv_number = path.split("tmp_cv_result_")[1].split(".")[0]
+            test_path = "./ground_truth/"+path_setup+"/"+cv_number+"/test.csv"
+            tmp_test = pd.read_csv(test_path).to_numpy()
+            for mask in tmp_test:
+                mask[0] = map_nodes[str(mask[0]).strip().replace('\xa0','')]
+                mask[1] = map_nodes[str(mask[1]).strip().replace('\xa0','')]
+                if mask[2] == 0:
+                    mask[2] = -1
+            tmp_test = tmp_test.astype(np.float) 
+            with th.no_grad():
+                acc = threshold_acc(model, g, g.ndata['vector'], tmp_test,loss,print_details=True)
+                return acc    
+        else:
+            raise NameError("Experiment: {} does not exists".format(strategy))
     
 def evaluate(training, g, features, mask,loss):
     training.net.eval()
@@ -313,7 +338,7 @@ def shuffle_splits(train_mask, n):
         np.random.shuffle(result[i])
     return np.array(result)
         
-def train(training,iterations,nsample=4):
+def train(training,iterations,nsample=2):
     dur = []
     print(str("Start of training...NN {} Loss {} Split {}: ").format(training.net_name,training.loss_name,training.batch_splits))
     #set max accuracy found if model already has state
@@ -406,18 +431,16 @@ def train(training,iterations,nsample=4):
         training.best.batch_splits = o_splits
     
     #save final model state and final results if experiment is not a CV
-    if cross_v < 0:
+    if strategy == "hold_out":
         if training.best != None:
             training.best.epochs_run = training.epochs_run
         training.save_state(path_setup)                        
         
-def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
+def cross_validation(training,iterations=1,ran="1-10",nsample=None):
     global cv_logs
     
     if nsample == None:
         nsample = neg_sample
-    if create == None:
-        create = create_new_split
     
     cv_ran = ran.split("-")
     init = int(cv_ran[0]) -1
@@ -428,10 +451,10 @@ def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
     
     training_copy = None
     for i in range(init,ending):
-        load_env(ds_name=dataset_name,ns=0,st=strategy,sp=create,we=word_embedding_encoding,cv=i)
+        load_env(ds_name=dataset_name,ns=0,experiment=strategy,new_split=False,cv=i)
         training_copy = copy.deepcopy(training)
         train(training_copy,iterations,nsample)
-        path_setup = dataset_name+"/"+strategy+"/"+nsample
+        path_setup = dataset_name+"/"+strategy+"/"+str(nsample)
         if training_copy.best != None:
             training_copy.best.epochs_run = training_copy.epochs_run
         training_copy.save_state(path_setup,"/tmp_cv_result_"+str(i))

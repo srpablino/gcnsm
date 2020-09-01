@@ -120,16 +120,19 @@ def write_csv(dirs,file_format,database_name):
         att_cat = ds_mf.pop("nominal")
     #         data = concat_values(ds_mf)
         data = ds_mf
-        del data["CAT"]
-        del data["BOOL"]
-        del data["NUM"]
-        del data["DATE"]
-        del data["URL"]
-        del data["COMPLEX"]
-        del data["PATH"]
-        del data["FILE"]
-        del data["IMAGE"]
-        del data["UNSUPPORTED"]
+        try:
+            del data["CAT"]
+            del data["BOOL"]
+            del data["NUM"]
+            del data["DATE"]
+            del data["URL"]
+            del data["COMPLEX"]
+            del data["PATH"]
+            del data["FILE"]
+            del data["IMAGE"]
+            del data["UNSUPPORTED"]
+        except:
+            print("...")
         data_final = {}
         id_name = data["name"].split("__")
         if len(id_name) > 1:
@@ -162,6 +165,7 @@ def write_csv(dirs,file_format,database_name):
             if key_types == "NUM":
                 num_num+=data["types"][key_types]
             else:
+                print(data["types"][key_types])
                 num_cat+=data["types"][key_types]
         data_final["number of nominal"] = num_cat
         data_final["number of numeric"] = num_num
@@ -223,8 +227,8 @@ def write_csv(dirs,file_format,database_name):
         nominal_final = {}
         num_distinct = []  
         for key in att_cat.keys():
-    #             if key == "<page title>":
-    #                 continue
+            if key == "<page title>":
+                continue
             att_cat_row = []
             num_distinct.append(len(att_cat[key]["value_counts"].keys()))
             att_cat_row.append(att_cat[key].pop("ds_id"))

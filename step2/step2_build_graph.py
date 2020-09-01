@@ -12,6 +12,8 @@ import json
 import networkx as nx
 import matplotlib.pyplot as plt
 from random import randrange
+import os
+from pathlib import Path
 
 def read_dataset(path,drop_columns=None,keep_columns=None):
     #get rid of useless columns
@@ -248,11 +250,11 @@ def step2(dataset):
     g = g = nx.Graph()
     input_path = "../step1/output/"+dataset+"/"
     output_path = "./output/"+dataset+"/"
-    df_dataset = read_dataset(input_path/"ds.csv",sep="~");
+    df_dataset = read_dataset(input_path+"/ds.csv");
     g = graph_dataset_short(df_dataset,g,word_emb)
-    df_attributes = read_dataset(input_path/"attr_nom.csv",sep="~");
+    df_attributes = read_dataset(input_path+"/attr_nom.csv");
     g = graph_attribute_short(df_attributes,g,word_emb)
-    df_attributes_numeric = read_dataset(input_path/"attr_num.csv",sep="~");
+    df_attributes_numeric = read_dataset(input_path+"/attr_num.csv");
     g = graph_attribute_short(df_attributes_numeric,g,word_emb)
     #write graph to file
     if not os.path.exists(output_path):

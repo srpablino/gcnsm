@@ -1,5 +1,5 @@
-from step3 import step3_gcn_nn_concatenate as gcn_nn
-from step3 import step3_gcn_loss as gcn_loss
+import step3_gcn_nn_concatenate as gcn_nn
+import step3_gcn_loss as gcn_loss
 import torch as th
 import os    
 from pathlib import Path
@@ -22,6 +22,7 @@ class Training():
         self.optimizer = optimizer
         self.epochs_run = 0
         self.path = None
+        self.gen_path = None
         self.runtime_seconds = 0
         self.log = []
         self.gen_path = ""
@@ -157,6 +158,6 @@ class Training():
         #load states of NN and optimizer
         self.net.load_state_dict(state['net'])
         self.optimizer.load_state_dict(state['optimizer'])
-        print("Training state loaded for configuration: \n" + path.split("/")[-1])
+        print("Training state loaded")
         print("Previous log: \n")
         print(self.log)    

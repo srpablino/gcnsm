@@ -65,7 +65,7 @@ def plot_details(sampling,db,st,a,op,lf,subpath="",nit=None):
         epochs=ep_run_end
     else:
         epochs=nit
-    path = str("./results/{}/{}/{}/net_name:{}/optimizer_name:{}/loss_name:{}/".format(db,st,sampling,a,op,lf))
+    path = str("./results/{}/{}/net_name:{}/optimizer_name:{}/loss_name:{}/".format(db,st,a,op,lf))
     path += subpath
     for s in splits:
         for lr in learning_rates:
@@ -77,7 +77,6 @@ def plot_details(sampling,db,st,a,op,lf,subpath="",nit=None):
                         enot = enot.split("e")[0].rstrip('0').rstrip(".")+"e"+enot.split("e")[1]
                         file_name = str("loss_parameters:{}|batch_splits:{}|lr:{}|epochs_run:{}_{}".format(loss_parameters[lp],s,enot,eri,ere))
                        
-                        
                         ##sub_folders
                         if os.path.exists(path+file_name+"/"):
                             plot_details(sampling,db,st,a,op,lf,file_name+"/")
@@ -146,7 +145,7 @@ def plot_cv_details(sampling,db,st,a,op,lf,subpath="",nit=None):
         epochs=ep_run_end
     else:
         epochs=nit
-    path = str("./results/{}/{}/{}/cv/net_name:{}/optimizer_name:{}/loss_name:{}/".format(db,st,sampling,a,op,lf))
+    path = str("./results/{}/{}/{}/net_name:{}/optimizer_name:{}/loss_name:{}/".format(db,st,sampling,a,op,lf))
     path += subpath
     for s in splits:
         for lr in learning_rates:
@@ -259,7 +258,7 @@ def plot_bar(sampling,db,st,a,op,lf,subpath="",nit=None):
         epochs=ep_run_end
     else:
         epochs=nit
-    path = str("./results/{}/{}/{}/cv/net_name:{}/optimizer_name:{}/loss_name:{}/".format(db,st,sampling,a,op,lf))
+    path = str("./results/{}/{}/{}/net_name:{}/optimizer_name:{}/loss_name:{}/".format(db,st,sampling,a,op,lf))
     path += subpath
     for s in splits:
         for lr in learning_rates:

@@ -1,7 +1,7 @@
 ## Get dataset with ~80% train, ~20% test
 import numpy as np
 import pandas as pd
-from step3 import step3_train_test_split as ds_split
+import step3_train_test_split as ds_split
 import copy
 import os
 from pathlib import Path
@@ -13,20 +13,19 @@ test_mask = None
 neg_sample = 2
 strategy = "random"
 create_new_split = False
-word_embedding_encoding = "FASTTEXT"
 path_setup = None
 dataset_name = "openml_203ds_datasets_matching"
 cross_v=-1
+g = None
 
 def parameter_error(param_error,value):
-    print("Encounter error in parameter {}, default value: {} will be used ".format(param_error,value))
-    
-def load_env(ds_name=None,ns=None,st=None,sp=None,we=None,cv=-1): 
+    raise NameError("Encounter error in parameter {}".format(param_error))
+
+def load_env(ds_name=None,ns=None,experiment=None,new_split=None,cv=0): 
     global dataset_name
     global neg_sample
     global strategy
     global create_new_split
-    global word_embedding_encoding
     global train_mask
     global test_mask
     global path_setup
@@ -45,160 +44,90 @@ def load_env(ds_name=None,ns=None,st=None,sp=None,we=None,cv=-1):
     else:
         neg_sample = ns
         
-    if st == None or not str(st) or st not in ["isolation","random"]:
+    if experiment == None or not str(experiment) or experiment not in ["10_cv","random_subsam","hold_out"]:
         parameter_error("strategy",strategy)
     else:
-        strategy = st
-    if sp == None:
+        strategy = experiment
+    if new_split == None:
         parameter_error("create_new_split",create_new_split)
     else:
-        create_new_split = sp
-    if we == None or not str(we) or we not in ["BERT","BERT2","FASTTEXT","FASTTEXT2","FASTTEXT2_2","FASTTEXT2_NAMES","FASTTEXT2_SHORT","FASTTEXT_SIMPLE_CLEAN","FASTTEXT2_CLEAN","FASTTEXT2_CLEAN5","FASTTEXT2_CLEAN4","FASTTEXT2_CLEAN3","FASTTEXT2_CLEAN2","FASTTEXT2_NEW","FASTTEXT_SIMPLE","FASTTEXT_SIMPLE_NAMES","FASTTEXT_SIMPLE_SHORT","MONITOR_SIMPLE","MONITOR_SIMPLE_SHORT","MONITOR_CLEAN","MONITOR_CLEAN2"]:
-        parameter_error("word_embedding_encoding",word_embedding_encoding)
-    else:
-        word_embedding_encoding = we
+        create_new_split = new_split
 
     print("Values to load")
     print("dataset_name="+dataset_name)
     print("neg_sample= "+str(neg_sample))
     print("strategy= "+strategy)
     print("create_new_split= "+str(create_new_split))
-    print("word_embedding_encoding= "+word_embedding_encoding)    
     print("cross_v= "+str(cross_v))    
 
-    if cross_v < 0:
-        if create_new_split:
-            print("Creating simple train/test splits...")
-            path_setup = ds_split.split_ds(dataset_name,strategy,neg_sample)
-        else:
-            path_setup = dataset_name+"/"+strategy+"/"+str(neg_sample)
-        
-        train_mask = pd.read_csv("./datasets/"+path_setup+"/train.csv").to_numpy()
-        test_mask = pd.read_csv("./datasets/"+path_setup+"/test.csv").to_numpy()
+    if strategy == "hold_out":
+        path_setup = dataset_name+"/"+strategy
+        train_mask = pd.read_csv("./ground_truth/"+path_setup+"/train.csv").to_numpy()
+        test_mask = pd.read_csv("./ground_truth/"+path_setup+"/test.csv").to_numpy()
     
     else:
         if cross_v == 0 and create_new_split:
             print("Creating cross validation splits...")
-            path_setup = ds_split.split_ds(dataset_name,strategy,neg_sample,True)
+            path_setup = ds_split.split_ds(dataset_name,strategy)
         else:
-            path_setup = dataset_name+"/"+strategy+"/"+str(neg_sample)+"/cv"
+            path_setup = dataset_name+"/"+strategy
             
-        
-        train_mask = pd.read_csv("./datasets/"+path_setup+"/"+str(cross_v)+"/train.csv").to_numpy()
-        test_mask = pd.read_csv("./datasets/"+path_setup+"/"+str(cross_v)+"/test.csv").to_numpy()
+        train_mask = pd.read_csv("./ground_truth/"+path_setup+"/"+str(cross_v)+"/train.csv").to_numpy()
+        test_mask = pd.read_csv("./ground_truth/"+path_setup+"/"+str(cross_v)+"/test.csv").to_numpy()
     
-    
-
     #info about split
     train_positive = np.array([x for x in train_mask if x[2]==1])
     test_positive = np.array([x for x in test_mask if x[2]==1])
     print("Dataset splits loaded")
-    print("Train samples: "+str(len(train_mask)) + " Test samples: "+str(len(test_mask)))
+#     print("Train samples: "+str(len(train_mask)) + " Test samples: "+str(len(test_mask)))
     print("Train positive samples: "+str(len(train_positive)) + " Test positive samples: "+str(len(test_positive)))
     load_dgl()
 
 
 ## Read graph of metafeatures
 import networkx as nx 
-map_ds = None
-map_reverse_ds_order = None
+map_nodes = None
+map_reverse = None
 def load_graph():
-    global map_ds
-    global map_reverse_ds_order
+    global map_nodes
+    global map_reverse
     global train_mask
     global test_mask
     
-    if word_embedding_encoding == "FASTTEXT":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext.gpickle")
-    if word_embedding_encoding == "FASTTEXT_SIMPLE":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_simple.gpickle")    
-    if word_embedding_encoding == "FASTTEXT_SIMPLE_NAMES":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_simple_names.gpickle")    
-    if word_embedding_encoding == "FASTTEXT_SIMPLE_SHORT":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_simple_short.gpickle")  
-    if word_embedding_encoding == "FASTTEXT_SIMPLE_CLEAN":
-        g_x = nx.read_gpickle("./word_embeddings/clean_fasttext_simple_short.gpickle")        
-        
-    if word_embedding_encoding == "FASTTEXT2":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext_v2.gpickle")    
-    if word_embedding_encoding == "FASTTEXT2_2":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext2.gpickle")        
-    if word_embedding_encoding == "FASTTEXT2_NAMES":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext2_names.gpickle")    
-    if word_embedding_encoding == "FASTTEXT2_SHORT":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_fasttext2_short.gpickle")    
-    
-    if word_embedding_encoding == "FASTTEXT2_NEW":
-        g_x = nx.read_gpickle("./word_embeddings/new_fasttext_short.gpickle")    
-    
-    if word_embedding_encoding == "FASTTEXT2_CLEAN":
-        g_x = nx.read_gpickle("./word_embeddings/clean_fasttext_short.gpickle")    
-    if word_embedding_encoding == "FASTTEXT2_CLEAN2":
-        g_x = nx.read_gpickle("./word_embeddings/clean2_fasttext_short.gpickle")    
-    if word_embedding_encoding == "FASTTEXT2_CLEAN3":
-        g_x = nx.read_gpickle("./word_embeddings/clean3_fasttext_short.gpickle")    
-    if word_embedding_encoding == "FASTTEXT2_CLEAN4":
-        g_x = nx.read_gpickle("./word_embeddings/clean4_fasttext_short.gpickle")    
-    if word_embedding_encoding == "FASTTEXT2_CLEAN5":
-        g_x = nx.read_gpickle("./word_embeddings/clean5_fasttext_short.gpickle")    
-    
-    if word_embedding_encoding == "MONITOR_SIMPLE":
-        g_x = nx.read_gpickle("./word_embeddings/monitor_fasttext_simple.gpickle")   
-    if word_embedding_encoding == "MONITOR_SIMPLE_SHORT":
-        g_x = nx.read_gpickle("./word_embeddings/monitor_fasttext_simple_short.gpickle")   
-        
-    if word_embedding_encoding == "MONITOR_CLEAN":
-        g_x = nx.read_gpickle("./word_embeddings/clean_monitor_fasttext_short.gpickle")   
-    if word_embedding_encoding == "MONITOR_CLEAN2":
-        g_x = nx.read_gpickle("./word_embeddings/clean_monitor_fasttext_short2.gpickle")   
-        
-    if word_embedding_encoding == "BERT":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_bert.gpickle")
-    if word_embedding_encoding == "BERT_SIMPLE":
-        g_x = nx.read_gpickle("./word_embeddings/encoded_bert_simple.gpickle")    
-        
-    if word_embedding_encoding == "BERT2":
-        g_x = nx.read_gpickle("./word_embeddings/new_bert_short.gpickle")    
-    
+    g_x = nx.read_gpickle("../step2/output/"+dataset_name+"/nodes_embeddings.gpickle")
 
-    ds_order = 0
+    node_order = 0
     for x,n in sorted(g_x.nodes(data=True)):
-        t = n['tipo']
-        if t == "dataset":
-            n['tipo'] = 0
-        if t == "feature dataset":
-            n['tipo'] = 1
-        if t == "literal dataset":
-            n['tipo'] = 2
-        if t == "attribute":
-            n['tipo'] = 3
-        if t == "feature attribute":
-            n['tipo'] = 4
-        if t == "literal attribute":
-            n['tipo'] = 5  
-        n['ds_order']=ds_order
-        ds_order+=1
+        n['node_order']=node_order
+        node_order+=1
 
-    datasets = [x.strip() for (x,y) in g_x.nodes(data=True) if y['tipo']==0]
-    ds_order = [y['ds_order'] for x,y in g_x.nodes(data=True) if y['tipo']==0]
-    map_ds = dict(zip(datasets,ds_order))
-    map_reverse_ds_order = dict(zip(ds_order,datasets))
+    nodes = [x.strip() for (x,y) in g_x.nodes(data=True)]
+    nodes_order = [y['node_order'] for x,y in g_x.nodes(data=True)]
+    map_nodes = dict(zip(nodes,nodes_order))
+    map_reverse = dict(zip(nodes_order,nodes))
 
     for mask in train_mask:
-        mask[0] = map_ds["DS_"+str(mask[0]).strip().replace('\xa0','')]
-        mask[1] = map_ds["DS_"+str(mask[1]).strip().replace('\xa0','')]            
+        mask[0] = map_nodes[str(mask[0]).strip().replace('\xa0','')]
+        mask[1] = map_nodes[str(mask[1]).strip().replace('\xa0','')]            
         if mask[2] == 0:
             mask[2] = -1
             
     for mask in test_mask:
-        mask[0] = map_ds["DS_"+str(mask[0]).strip().replace('\xa0','')]
-        mask[1] = map_ds["DS_"+str(mask[1]).strip().replace('\xa0','')]
+        mask[0] = map_nodes[str(mask[0]).strip().replace('\xa0','')]
+        mask[1] = map_nodes[str(mask[1]).strip().replace('\xa0','')]
         if mask[2] == 0:
             mask[2] = -1
         
     
     train_mask = train_mask.astype(np.float) 
     test_mask = test_mask.astype(np.float) 
+    
+    ##get only same number of negative pairs for test to have 50/50 pos and neg
+    test_pos = [x for x in test_mask if x[2]==1.0]
+    test_neg = [x for x in test_mask if x[2]==-1.0]
+    np.random.shuffle(test_neg)
+    test_mask = np.concatenate((test_pos,test_neg[0:len(test_pos)]))
+    np.random.shuffle(test_mask)
     
     return g_x
 
@@ -211,12 +140,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 from dgl import DGLGraph
 #convert from networkx to graph deep library format
-g = None
 def load_dgl():
     global g
     g_x = load_graph()
-    g = dgl.DGLGraph()
-    g.from_networkx(g_x,node_attrs=['tipo','vector','ds_order'], edge_attrs=None)
+    g = dgl.from_networkx(g_x,node_attrs=['vector','node_order'], edge_attrs=None)
+#     g = dgl.DGLGraph()
+#     g.from_networkx(g_x,node_attrs=['tipo','vector','node_order'], edge_attrs=None)
     print("Meta-feature graph from datasets loaded")
 
 
@@ -306,29 +235,46 @@ def threshold_acc(model, g, features, mask,loss,print_details=False,threshold_di
     
     return output
 
-def confusion_matrix(model, g, features, mask,loss,threshold):
-    model.eval()
-    for m in mask:
-        if m[2]==0:
-            m[2]=-1
-    with th.no_grad():
-        acc = threshold_acc(model, g, features, mask,loss,print_details=True,threshold_dist=threshold,threshold_cos=threshold)
-        return acc
-    
-def confusion_matrix_cv(model, g, features, path,loss,threshold):
-    model.eval()
-    cv_number = path.split("tmp_cv_result_")[1].split(".")[0]
-    path=path.split("/net_name")[0].replace("models/","datasets/")+"/"+cv_number
-    tmp_test = pd.read_csv(path+"/test.csv").to_numpy()
-    for mask in tmp_test:
-        mask[0] = map_ds["DS_"+str(mask[0])]
-        mask[1] = map_ds["DS_"+str(mask[1])]
-        if mask[2]==0:
-            mask[2]=-1
-        
-    with th.no_grad():
-        acc = threshold_acc(model, g, features, tmp_test,loss,print_details=True,threshold_dist=threshold,threshold_cos=threshold)
-        return acc    
+# def confusion_matrix(model, g, features, mask,loss,threshold):
+def confusion_matrix(training,path=None):
+    model = training.net
+    loss = training.loss_name
+    if strategy == "hold_out":
+        model.eval()
+        test_path = "./ground_truth/"+path_setup+"/test.csv"
+        tmp_test = pd.read_csv(test_path).to_numpy()
+        for mask in tmp_test:
+            mask[0] = map_nodes[str(mask[0]).strip().replace('\xa0','')]
+            mask[1] = map_nodes[str(mask[1]).strip().replace('\xa0','')]
+            if mask[2] == 0:
+                mask[2] = -1
+        tmp_test = tmp_test.astype(np.float) 
+        ##get only same number of negative pairs for test to have 50/50 pos and neg
+        test_pos = [x for x in tmp_test if x[2]==1.0]
+        test_neg = [x for x in tmp_test if x[2]==-1.0]
+        np.random.shuffle(test_neg)
+        tmp_test = np.concatenate((test_pos,test_neg[0:len(test_pos)]))
+        np.random.shuffle(tmp_test)
+        with th.no_grad():
+            acc = threshold_acc(model, g, g.ndata['vector'], tmp_test,loss,print_details=True)
+            return acc
+    else:
+        if strategy == "10_cv" or strategy == "random_subsam":   
+            model.eval()
+            cv_number = path.split("tmp_cv_result_")[1].split(".")[0]
+            test_path = "./ground_truth/"+path_setup+"/"+cv_number+"/test.csv"
+            tmp_test = pd.read_csv(test_path).to_numpy()
+            for mask in tmp_test:
+                mask[0] = map_nodes[str(mask[0]).strip().replace('\xa0','')]
+                mask[1] = map_nodes[str(mask[1]).strip().replace('\xa0','')]
+                if mask[2] == 0:
+                    mask[2] = -1
+            tmp_test = tmp_test.astype(np.float) 
+            with th.no_grad():
+                acc = threshold_acc(model, g, g.ndata['vector'], tmp_test,loss,print_details=True)
+                return acc    
+        else:
+            raise NameError("Experiment: {} does not exists".format(strategy))
     
 def evaluate(training, g, features, mask,loss):
     training.net.eval()
@@ -392,23 +338,16 @@ def shuffle_splits(train_mask, n):
         np.random.shuffle(result[i])
     return np.array(result)
         
-def train(training,iterations,nsample=4):
+def train(training,iterations,nsample=2):
     dur = []
     print(str("Start of training...NN {} Loss {} Split {}: ").format(training.net_name,training.loss_name,training.batch_splits))
     #set max accuracy found if model already has state
-    max_acc = 0.0
-    max_acc2 = 0.0
-    loss_min = 99999999.9
+    max_fscore = 0.0
     if len(training.log) > 0:
         for l in training.log:
-            if l["fscore"] > max_acc:
-                max_acc = l["fscore"]
-                max_acc2 = l["acc2"]
-            else:        
-                if l["fscore"] == max_acc and l["acc2"] > max_acc2:
-                    max_acc2 = l["acc2"]
+            if l["fscore"] > max_fscore:
+                max_fscore = l["fscore"]
             
-    need_update = 0
     ##original values (take into account for saving the model)
     o_lr = training.lr
     o_splits = training.batch_splits
@@ -477,11 +416,10 @@ def train(training,iterations,nsample=4):
         print(str("Ep:{}, loss:{:.5f}, loss_test:{:.5f}, lr:{:.2e}, fs:{:.5f} (r={:.3f},p={:.3f}),  time:{:.3f}, tt:{:.3f}").format(output['epoch'],output['loss'],output['loss_test'],output['lr'],output['fscore'],output['recall'],output['precision'],output['time_epoch'],output['time_total']))
         
         ##save best model and results found so far
-        if output['fscore'] > max_acc:
+        if output['fscore'] > max_fscore:
             print("##########Best model found so far##########")
             training.set_best(training)
-            max_acc = output['fscore']
-            max_acc2 = acc2
+            max_fscore = output['fscore']
         training.set_lr(training.lr * .99)       
         
                                     
@@ -493,18 +431,16 @@ def train(training,iterations,nsample=4):
         training.best.batch_splits = o_splits
     
     #save final model state and final results if experiment is not a CV
-    if cross_v < 0:
+    if strategy == "hold_out":
         if training.best != None:
             training.best.epochs_run = training.epochs_run
         training.save_state(path_setup)                        
         
-def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
+def cross_validation(training,iterations=1,ran="1-10",nsample=None):
     global cv_logs
     
     if nsample == None:
         nsample = neg_sample
-    if create == None:
-        create = create_new_split
     
     cv_ran = ran.split("-")
     init = int(cv_ran[0]) -1
@@ -515,10 +451,10 @@ def cross_validation(training,iterations=1,ran="1-10",nsample=None,create=None):
     
     training_copy = None
     for i in range(init,ending):
-        load_env(ds_name=dataset_name,ns=0,st=strategy,sp=create,we=word_embedding_encoding,cv=i)
+        load_env(ds_name=dataset_name,ns=0,experiment=strategy,new_split=False,cv=i)
         training_copy = copy.deepcopy(training)
         train(training_copy,iterations,nsample)
-        path_setup = dataset_name+"/"+strategy+"/"+str(neg_sample)+"/cv"
+        path_setup = dataset_name+"/"+strategy+"/"+str(nsample)
         if training_copy.best != None:
             training_copy.best.epochs_run = training_copy.epochs_run
         training_copy.save_state(path_setup,"/tmp_cv_result_"+str(i))

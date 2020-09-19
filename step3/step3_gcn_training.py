@@ -1,5 +1,5 @@
-from step3 import step3_gcn_nn_concatenate as gcn_nn
-from step3 import step3_gcn_loss as gcn_loss
+import step3_gcn_nn_concatenate as gcn_nn
+import step3_gcn_loss as gcn_loss
 import torch as th
 import os    
 from pathlib import Path
@@ -22,6 +22,7 @@ class Training():
         self.optimizer = optimizer
         self.epochs_run = 0
         self.path = None
+        self.gen_path = None
         self.runtime_seconds = 0
         self.log = []
         self.gen_path = ""
@@ -96,32 +97,20 @@ class Training():
                                   )).replace(" ","")
             
             outdir = path_setup+"/"+save_dir
+            ###
             outpath = outdir +"/"+save_path
             self.gen_path = outpath
             
-            if cv_path == "":
-                outdir_model = "./models/"+ outdir
-                if not os.path.exists(outdir_model):
-                    Path(outdir_model).mkdir(parents=True, exist_ok=True)
+            outdir_model = "./models/"+ outdir +"/"+save_path
+            if not os.path.exists(outdir_model):
+                Path(outdir_model).mkdir(parents=True, exist_ok=True)
 
-                outdir_result = "./results/"+ outdir
-                if not os.path.exists(outdir_result):
-                    Path(outdir_result).mkdir(parents=True, exist_ok=True)
-                
-                path_model = outdir_model+"/"+save_path+".pt"
-                path_result = outdir_result+"/"+save_path+".txt"
-                
-            else:
-                outdir_model = "./models/"+ outdir +"/"+save_path
-                if not os.path.exists(outdir_model):
-                    Path(outdir_model).mkdir(parents=True, exist_ok=True)
+            outdir_result = "./results/"+ outdir +"/"+save_path
+            if not os.path.exists(outdir_result):
+                Path(outdir_result).mkdir(parents=True, exist_ok=True)
 
-                outdir_result = "./results/"+ outdir +"/"+save_path
-                if not os.path.exists(outdir_result):
-                    Path(outdir_result).mkdir(parents=True, exist_ok=True)
-                
-                path_model = outdir_model+cv_path+".pt"
-                path_result = outdir_result+cv_path+".txt"
+            path_model = outdir_model+cv_path+".pt"
+            path_result = outdir_result+cv_path+".txt"
                 
             
             th.save(state, path_model)
@@ -169,6 +158,6 @@ class Training():
         #load states of NN and optimizer
         self.net.load_state_dict(state['net'])
         self.optimizer.load_state_dict(state['optimizer'])
-        print("Training state loaded for configuration: \n" + path.split("/")[-1])
+        print("Training state loaded")
         print("Previous log: \n")
         print(self.log)    

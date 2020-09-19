@@ -1,1 +1,0 @@
-[{'epoch': 0, 'loss': 0.0005585064500337467, 'loss_test': 0.14638777077198029, 'acc': 0.5, 'acc2': 0, 'true_positives': 99.0, 'false_positives': 99.0, 'true_negatives': 0.0, 'false_negatives': 0.0, 'recall': 1.0, 'specificity': 0.0, 'precision': 0.5, 'fscore': 0.6666666666666666, 'time_epoch': 52.81007, 'time_total': 52.81007, 'lr': 0.01, 'batch_splits': 1024}]

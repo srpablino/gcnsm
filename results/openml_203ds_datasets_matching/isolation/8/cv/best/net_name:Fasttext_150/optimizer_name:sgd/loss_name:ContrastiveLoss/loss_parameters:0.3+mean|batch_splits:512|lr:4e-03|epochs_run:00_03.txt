@@ -1,1 +1,0 @@
-[{'epoch': 0, 'loss': 0.00071, 'acc': 0.5101, 'acc2': 0.69231, 'time_epoch': 186.38897, 'time_total': 186.38897}, {'epoch': 1, 'loss': 0.00066, 'acc': 0.53535, 'acc2': 0.69231, 'time_epoch': 201.52019, 'time_total': 403.04039}, {'epoch': 2, 'loss': 0.00064, 'acc': 0.55051, 'acc2': 0.69231, 'time_epoch': 213.18742, 'time_total': 639.56227}]
